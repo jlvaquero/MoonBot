@@ -1,0 +1,32 @@
+{
+  "name": "moongame",
+  "version": "1.0.0",
+  "description": "tabletop moon game on telegram",
+  "main": "moon.js",
+  "scripts": {
+     "test": "mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jlvaquero/moonGame.git"
+  },
+  "keywords": [
+    "javascript",
+    "moon",
+    "1110011",
+    "tabletop"
+  ],
+  "author": "jlvaquero",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jlvaquero/moonGame/issues"
+  },
+  "homepage": "https://github.com/jlvaquero/moonGame#readme",
+  "dependencies": {
+    "ioredis": "^4.14.1",
+    "node-telegram-bot-api": "^0.40.0"
+  },
+  "devDependencies": {
+    "mocha": "^6.2.2"
+  }
+}
