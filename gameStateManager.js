@@ -1,8 +1,9 @@
 const ObjetivesGenerator = require('./objetives');
 
-const withSameName = (player) => player.name === newPlayerId;
+const withSameName = (currentName) => (player) => player.name === currentName;
 
 const gameStateManager = {
+
   CreateNewGameState(gameId, playerId, numBits) {
 
     let gameState = { ...newGameState };
@@ -19,22 +20,28 @@ const gameStateManager = {
     gameState.registers.D = regValuesArr[2];
     return this.JoinPlayer(gameState, playerId);
   },
+
   JoinPlayer(gameState, newPlayerId) {
 
-    const alreadyJoined = () => gameState.playerList.findIndex(withSameName) ? true : false;
+    const withNewPlayer = withSameName(newPlayerId);
+
+    const alreadyJoined = () => gameState.playerList.findIndex(withNewPlayer) === -1 ? false : true;
 
     if (alreadyJoined()) { return gameState; }
 
     let playerState = { ...newPlayerState };
-    playerState.name = playerId;
+    playerState.name = newPlayerId;
 
     gameState.playerList.push(playerState);
     return gameState;
   },
+
   LeavePlayer(gameState, playerId) {
 
+    const withPlayerLeaving = withSameName(playerId);
+
     const playerPosition = () => {
-      let position = gameState.playerList.findIndex(withSameName);
+      let position = gameState.playerList.findIndex(withPlayerLeaving);
       return position ? position : gameState.playerTurn;
     };
 
@@ -45,10 +52,12 @@ const gameStateManager = {
     gameState.playerTurn = nexPlayerTurn();
     return gameState;
   },
+
   StartGame(gameState) {
     gameState.started = true;
     return gameState;
   },
+
   EndTurn(gameState) {
 
     const endRound = () => gameState.playerTurn = gameState.playerList.length - 1;
@@ -62,6 +71,7 @@ const gameStateManager = {
     return gameState;
 
   },
+
   ExecuteBitOperation(gameState, operation, cost, reg1, reg2) {
 
     gameState.registers[reg1] = operation(gameState.registers[reg1], gameState.registers[reg2]);
@@ -69,6 +79,7 @@ const gameStateManager = {
     return gameState;
 
   },
+
   AccomplishObjetive(gameState) {
 
     const unResolvedObjetivesLeft = () => gameState.unresolved > 1 ? gameState.unresolved - 1 : gameState.unresolved;
@@ -77,6 +88,7 @@ const gameStateManager = {
     gameState.unresolved = unResolvedObjetivesLeft();
     return gameState;
   }
+
 };
 
 const newGameState = {

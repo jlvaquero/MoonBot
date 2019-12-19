@@ -38,6 +38,7 @@ function Game(store) {
       store.set(gameId, gameState);
       return "Game created. Other group members can /joingame .";
     },
+
     async JoinGame(gameId, playerId) {
       let gameState = await store.get(gameId);
       if (!gameState) { return "Please, /create a game before joining on it."; }
@@ -47,6 +48,7 @@ function Game(store) {
 
       return playerId + " has joined the game.";
     },
+
     async LeaveGame(gameId, playerId) {
 
       const noPlayersLeft = () => gameState.playerList.length < 1;
@@ -65,6 +67,7 @@ function Game(store) {
       await store.set(gameId, gameState);
       return `${playerId} has left the game.`;
     },
+
     async StartGame(gameId) {
       let gameState = await store.get(gameId);
 
@@ -73,12 +76,14 @@ function Game(store) {
       await store.set(gameId, gameState);
       return { message: "Game has been started.", gameState };
     },
+
     async StatusGame(gameId) {
 
       const gameState = await store.get(gameId);
       return { message: gameState ? null : "No game. /creategame first.", gameState };
 
     },
+
     async EndPlayerTurn(gameId, playerId) {
       let gameState = await store.get(gameId);
 
@@ -88,10 +93,12 @@ function Game(store) {
 
       return { message: `${playerId} ends turn.`, gameState };
     },
+
     async CancelGame(gameId) {
       await store.del(gameId);
       return "Game has been cancelled.";
     },
+
     async ExecuteBitOperation(gameId, playerId, operation, register1, register2) {
 
       const isPlayerTurn = () => gameState.playerList[gameState.playerTurn].name === playerId;
@@ -126,6 +133,9 @@ function Game(store) {
 
       return operation + "operation applied.";
     }
+
   };
+
 }
+
 module.exports = Game;
