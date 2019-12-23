@@ -7,25 +7,25 @@ const gameStateManager = {
   CreateNewGameState(gameId, playerId, numBits) {
 
     let gameState = { ...newGameState };
-    gameState.playerList = new Array();
     gameState.id = gameId;
     gameState.numBits = numBits;
 
-    var { registerValuesSet, objetives } = ObjetivesGenerator(numBits);
+    var { registerValues, objetives } = ObjetivesGenerator(numBits);
     gameState.objetives = objetives;
 
-    let regValuesArr = [...registerValuesSet];
-    gameState.registers.B = regValuesArr[0];
-    gameState.registers.C = regValuesArr[1];
-    gameState.registers.D = regValuesArr[2];
+    gameState.registers.B = registerValues[0];
+    gameState.registers.C = registerValues[1];
+    gameState.registers.D = registerValues[2];
+
+    gameState.playerList = new Array();
     return this.JoinPlayer(gameState, playerId);
   },
 
   JoinPlayer(gameState, newPlayerId) {
 
-    const withNewPlayer = withSameName(newPlayerId);
+    const playerJoining = withSameName(newPlayerId);
 
-    const alreadyJoined = () => gameState.playerList.findIndex(withNewPlayer) === -1 ? false : true;
+    const alreadyJoined = () => gameState.playerList.findIndex(playerJoining) === -1 ? false : true;
 
     if (alreadyJoined()) { return gameState; }
 
@@ -38,10 +38,10 @@ const gameStateManager = {
 
   LeavePlayer(gameState, playerId) {
 
-    const withPlayerLeaving = withSameName(playerId);
+    const playerLeaving = withSameName(playerId);
 
     const playerPosition = () => {
-      let position = gameState.playerList.findIndex(withPlayerLeaving);
+      let position = gameState.playerList.findIndex(playerLeaving);
       return position ? position : gameState.playerTurn;
     };
 
@@ -60,13 +60,15 @@ const gameStateManager = {
 
   EndTurn(gameState) {
 
-    const endRound = () => gameState.playerTurn = gameState.playerList.length - 1;
+    const endRound = () => gameState.playerTurn === gameState.playerList.length - 1;
+    const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = 3; return playerState; });
 
     if (endRound()) {
       gameState.playerTurn = 0;
       gameState.unresolved += 1;
+      gameState.playerList = resetEnergy();
     }
-    else { gameState.playerTurn + 1; }
+    else { gameState.playerTurn += 1; }
 
     return gameState;
 
@@ -82,11 +84,14 @@ const gameStateManager = {
 
   AccomplishObjetive(gameState) {
 
-    const unResolvedObjetivesLeft = () => gameState.unresolved > 1 ? gameState.unresolved - 1 : gameState.unresolved;
+    const unresolvedObjetivesLeft = () => gameState.unresolved > 1 ? gameState.unresolved - 1 : gameState.unresolved;
 
     gameState.objetives.pop();
-    gameState.unresolved = unResolvedObjetivesLeft();
+    gameState.unresolved = unresolvedObjetivesLeft();
     return gameState;
+  },
+  WinGame(gameState) {
+
   }
 
 };
@@ -96,15 +101,15 @@ const newGameState = {
   numBits: 0,
   unresolved: 1,
   started: false,
-  playerList: [],
+  win: false,
+  loose: false,
   playerTurn: 0,
   registers: {
     A: 0,
     B: 0,
     C: 0,
     D: 0
-  },
-  objetives: []
+  }
 };
 
 const newPlayerState = {

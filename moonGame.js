@@ -21,14 +21,13 @@ const Cpu_Bits = {
 
 function Game(store) {
 
-  //const store = stateStore;
-
   return {
     async CreateGame(gameId, numBits, playerId) {
 
       const keepNumBitsRange = (bitsNum) => utils.Clamp(bitsNum, Cpu_Bits.min, Cpu_Bits.max);
 
       numBits = keepNumBitsRange(numBits);
+
       let gameState = await store.get(gameId);
 
       if (gameState) { return "A game is currently in progress."; }
@@ -36,7 +35,8 @@ function Game(store) {
       gameState = StateManager.CreateNewGameState(gameId, playerId, numBits);
 
       store.set(gameId, gameState);
-      return "Game created. Other group members can /joingame .";
+      return "Game created. Now, other group members can /joingame .";
+
     },
 
     async JoinGame(gameId, playerId) {
@@ -44,8 +44,9 @@ function Game(store) {
       if (!gameState) { return "Please, /create a game before joining on it."; }
       if (gameState.started) { return "You can not join into an already started game!"; }
 
-      await store.set(gameId, StateManager.JoinPlayer(gameState, playerId));
+      gameState = StateManager.JoinPlayer(gameState, playerId);
 
+      await store.set(gameId, gameState);
       return playerId + " has joined the game.";
     },
 
@@ -69,7 +70,12 @@ function Game(store) {
     },
 
     async StartGame(gameId) {
+      let message;
       let gameState = await store.get(gameId);
+      if (!gameState) {
+        message = "Please, /create a game before stat it.";
+        return { message: message, gameState: gameState };
+      }
 
       gameState = StateManager.StartGame(gameState);
 
@@ -85,13 +91,22 @@ function Game(store) {
     },
 
     async EndPlayerTurn(gameId, playerId) {
+
+      const loose = () => gameState.unresolved === 5;
+
       let gameState = await store.get(gameId);
 
       gameState = StateManager.EndTurn(gameState);
+      if (loose()) {
+        gameState = StateManager.LooseGame(gameState);
+        await this.CancelGame(gameId);
+        message = "You crash and died horrybly";
+        return { message: message, gameState: gameState };
+      }
 
       await store.set(gameId, gameState);
 
-      return { message: `${playerId} ends turn.`, gameState };
+      return { message: `${playerId} ends turn.`, gameState: gameState };
     },
 
     async CancelGame(gameId) {
@@ -99,7 +114,7 @@ function Game(store) {
       return "Game has been cancelled.";
     },
 
-    async ExecuteBitOperation(gameId, playerId, operation, register1, register2) {
+    async ExecuteBitOperation(operation, gameId, playerId, register1, register2, ) {
 
       const isPlayerTurn = () => gameState.playerList[gameState.playerTurn].name === playerId;
       const enoughEnergy = () => gameState.playerList[gameState.playerTurn].energy >= OperationCost.inc;
@@ -109,8 +124,16 @@ function Game(store) {
       const loose = () => gameState.unresolved === 5;
 
       let gameState = await store.get(gameId);
-      if (!isPlayerTurn()) { return `It is not your turn ${playerId}`; }
-      if (!enoughEnergy()) { return `You do not have enough energy for ${operation} operation ${playerId}`; }
+      let message;
+
+      if (!isPlayerTurn()) {
+        message = `It is not your turn ${playerId}`;
+        return { message: message, gameState: gameState };
+      }
+      if (!enoughEnergy()) {
+        message = `You do not have enough energy for ${operation} operation ${playerId}`;
+        return { message: message, gameState: gameState };
+      }
 
       gameState = StateManager.ExecuteBitOperation(gameState, RegisterOperations(gameState.numBits)[operation], OperationCost[operation], register1, register2);
 
@@ -118,20 +141,26 @@ function Game(store) {
         gameState = StateManager.AccomplishObjetive(gameState);
       }
       if (win()) {
-        return "Congratulations. All objetives completed. You landed succeful on the surface of the moon.";
+        gameState = StateManager.WinGame(gameState);
+        await this.CancelGame(gameId);
+        message = "Congratulations. All objetives completed. You landed successful on the surface of the moon.";
+        return { message: message, gameState: gameState };
       }
 
       if (shouldEndTurn()) {
-        gameState = await this.EndPlayerTurn(gameId, playerId);
+        gameState = StateManager.EndTurn(gameState);
         if (loose()) {
+          gameState = StateManager.LooseGame(gameState);
           await this.CancelGame(gameId);
-          return "You crash and died horrybly";
+          message = "You crash and died horrybly";
+          return { message: message, gameState: gameState };
         }
       }
 
       await store.set(gameId, gameState);
 
-      return operation + "operation applied.";
+      message = `${operation} operation applied.`;
+      return { message: message, gameState: gameState };
     }
 
   };
