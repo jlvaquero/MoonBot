@@ -44,6 +44,9 @@ bot.onText(/^\/startgame$/, StartGameRequest);
 bot.onText(/^\/status$/, StatusGameRequest);
 bot.onText(/^\/endturn$/, EndTurnRequest);
 bot.onText(/^\/cancelgame$/, CancellGameRequest);
+bot.onText(/^\/help$/, HelpRequest);
+bot.onText(/^\/rules$/, RulesRequest);
+bot.onText(/^\/operations$/, OperationListRequest);
 bot.onText(/^\/inc ([A-D]|[a-d])$/, IncRequest);
 bot.onText(/^\/dec ([A-D]|[a-d])$/, DecRequest);
 bot.onText(/^\/rol ([A-D]|[a-d])$/, RolRequest);
@@ -56,8 +59,14 @@ bot.onText(/^\/xor ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
 
 
 async function InitConversationRequest(msg) {
-  bot.sendMessage(msg.chat.id, `Hello ${msg.from.username}. If you want to play moon (1110011) with your friends add me to a telegram group.`);
+  bot.sendMessage(msg.chat.id, welcome_message(msg));
 }
+
+const welcome_message = (msg) =>
+  `Hello ${msg.from.username}.
+You can check the /rules or /creategame and start playing in solo mode.
+Add me to a group if you want to play with friends.
+You can use /help to see all available commands.`;
 
 async function CreateDefaultGameRequest(msg) {
   let result = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
@@ -88,6 +97,7 @@ async function StartGameRequest(msg) {
 async function StatusGameRequest(msg) {
   let { message, gameState } = await Game.StatusGame(msg.chat.id);
   await sendMessage(msg.chat.id, message);
+  await OperationListRequest(msg);
   sendGameStatus(msg.chat.id, gameState);
 }
 
@@ -101,6 +111,62 @@ async function CancellGameRequest(msg) {
   let result = await Game.CancelGame(msg.chat.id);
   await sendMessage(msg.chat.id, result);
 }
+
+function HelpRequest(msg) {
+  sendMessage(msg.chat.id, help_message);
+}
+
+const help_message =
+  `/rules - Shows a link about the game and pdf rules.
+/creategame - Create a new game.
+/joingame - Join into a created game. You can not join into a started game.
+/leavegame - Player leaves the game. If last player leaves, the game is cancelled.
+/startgame - Start the first round of a created game. Once started, no players can join it.
+/status - Shows the current game status like player turn, player energy, current objetive, register values, unresolved objetives queue and objetives left.
+/operations - Shows the list of register operations and its energy cost.
+/endturn - Player ends the current turn.
+/cancelgame - Cancel the created game. It can not be resumed.
+/help - Shows this command list.
+/inc - How to use: "/inc B".
+/dec - How to use: "/dec B".
+/rol - How to use: "/rol B".
+/ror - How to use: "/ror B".
+/mov - How to use: "/mov A C". Register A will be modified.
+/not - How to use: "/not D".
+/or - How to use: "/or C B". Register C will be modified.
+/and - How to use: "/and C B". Register C will be modified.
+/xor - How to use: "/xor C B". Register C will be modified.`;
+
+function RulesRequest(msg) {
+  sendMessage(msg.chat.id, rules_message);
+}
+
+const rules_message =
+  `[What is moon (1110011)?](http://compus.deusto.es/moon/)\n
+[Rule book](http://tiny.cc/moonboardgame-en)`;
+
+function OperationListRequest(msg) {
+  return sendMessage(msg.chat.id, opList_message);
+}
+
+const opList_message =
+  `
+\`\`\`
+Operation  Target  Cost
+---------  ------  ----
+   inc      1 Reg   2  \u{1F50B}
+   dec      1 Reg   2  \u{1F50B}
+   rol      1 Reg   1  \u{1F50B}
+   ror      1 Reg   1  \u{1F50B}
+   mov      2 Reg   1  \u{1F50B}
+   not      1 Reg   1  \u{1F50B}
+   or       2 Reg   0.5\u{1F50B}
+   and      2 reg   0.5\u{1F50B}
+   xor      2 Reg   0.5\u{1F50B} \`\`\`
+
+All 2 register operations store the result in the first register.
+"or A B" will modify register A
+"mov A B" will copy register B value into register A`;
 
 const OperationCode = {
   inc: "inc",
@@ -191,31 +257,34 @@ function buildStatusMessage(gameState) {
   const objetivesLeft = () => gameState.objetives.length;
   const unresolved = () => gameState.unresolved;
 
-  let statusString = `Player turn: ${playerTurn()}\n`;
-  statusString += `Energy left: ${eneryLeft()}\n`;
-  statusString += `Objetive: \n\n    ${currentObjetive()}\n`;
-  //statusString += "Registers state\n";
-  statusString += "-----------------\n";
-  statusString += `A: ${registerA()}\n`;
-  statusString += "-----------------\n";
-  statusString += `B: ${registerB()}\n`;
-  statusString += "-----------------\n";
-  statusString += `C: ${registerC()}\n`;
-  statusString += "-----------------\n";
-  statusString += `D: ${registerD()}\n`;
-  statusString += "-----------------\n";
-  statusString += `Unresolved objetives: ${unresolved()}\n`;
-  statusString += `Objetives left: ${objetivesLeft()}`;
+  return ` $> Player turn: ${playerTurn()}
+$> ${eneryLeft()} \u{1F50B} left
+$> Objetive:
 
-  return statusString;
+\`\`\`
+   ${currentObjetive()}
+-----------------
+A: ${registerA()}
+-----------------
+B: ${registerB()}
+-----------------
+C: ${registerC()}
+-----------------
+D: ${registerD()}
+-----------------
+\`\`\`
+$> Unresolved objetives: ${unresolved()}
+$> Objetives left: ${objetivesLeft()}
+$> /operations manual`;
 }
 
 function sendMessage(chatId, message) {
   if (!message) { return Promise.resolve(); }
-  return bot.sendMessage(chatId, message);
+  return bot.sendMessage(chatId, message, { parse_mode: "Markdown"});
 }
 
 function sendGameStatus(chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
-  return bot.sendMessage(chatId, buildStatusMessage(gameState));
+  return sendMessage(chatId, buildStatusMessage(gameState));
 }
+

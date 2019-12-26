@@ -14,8 +14,8 @@ function Operations(numBits) {
       if (value === 0) return maxValue;
       return --value;
     },
-    mov: function (value) {
-      return value;
+    mov: function (_, value2 ) {
+      return value2;
     },
     not: function (value) {
       return maxValue - value;

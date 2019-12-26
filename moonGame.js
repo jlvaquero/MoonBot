@@ -41,13 +41,13 @@ function Game(store) {
 
     async JoinGame(gameId, playerId) {
       let gameState = await store.get(gameId);
-      if (!gameState) { return "Please, /create a game before joining on it."; }
+      if (!gameState) { return "Please, /creategame before joining on it."; }
       if (gameState.started) { return "You can not join into an already started game!"; }
 
       gameState = StateManager.JoinPlayer(gameState, playerId);
 
       await store.set(gameId, gameState);
-      return playerId + " has joined the game.";
+      return `${playerId} has joined the game.`;
     },
 
     async LeaveGame(gameId, playerId) {
@@ -73,7 +73,7 @@ function Game(store) {
       let message;
       let gameState = await store.get(gameId);
       if (!gameState) {
-        message = "Please, /create a game before stat it.";
+        message = "Please, /creategame before stat it.";
         return { message: message, gameState: gameState };
       }
 
@@ -117,7 +117,7 @@ function Game(store) {
     async ExecuteBitOperation(operation, gameId, playerId, register1, register2, ) {
 
       const isPlayerTurn = () => gameState.playerList[gameState.playerTurn].name === playerId;
-      const enoughEnergy = () => gameState.playerList[gameState.playerTurn].energy >= OperationCost.inc;
+      const enoughEnergy = () => gameState.playerList[gameState.playerTurn].energy >= OperationCost[operation];
       const shouldEndTurn = () => gameState.playerList[gameState.playerTurn].energy === 0;
       const objetiveAccomplished = () => gameState.registers.A === gameState.objetives[gameState.objetives.length - 1];
       const win = () => gameState.objetives.length === 0;
@@ -152,7 +152,7 @@ function Game(store) {
         if (loose()) {
           gameState = StateManager.LooseGame(gameState);
           await this.CancelGame(gameId);
-          message = "You crash and died horrybly";
+          message = "You crashed and died horrybly.";
           return { message: message, gameState: gameState };
         }
       }
