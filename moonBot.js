@@ -97,7 +97,6 @@ async function StartGameRequest(msg) {
 async function StatusGameRequest(msg) {
   let { message, gameState } = await Game.StatusGame(msg.chat.id);
   await sendMessage(msg.chat.id, message);
-  await OperationListRequest(msg);
   sendGameStatus(msg.chat.id, gameState);
 }
 
@@ -113,7 +112,7 @@ async function CancellGameRequest(msg) {
 }
 
 function HelpRequest(msg) {
-  sendMessage(msg.chat.id, help_message);
+  return sendMessage(msg.chat.id, help_message);
 }
 
 const help_message =
@@ -138,7 +137,7 @@ const help_message =
 /xor - How to use: "/xor C B". Register C will be modified.`;
 
 function RulesRequest(msg) {
-  sendMessage(msg.chat.id, rules_message);
+  return sendMessage(msg.chat.id, rules_message);
 }
 
 const rules_message =
@@ -154,19 +153,19 @@ const opList_message =
 \`\`\`
 Operation  Target  Cost
 ---------  ------  ----
-   inc      1 Reg   2  \u{1F50B}
-   dec      1 Reg   2  \u{1F50B}
-   rol      1 Reg   1  \u{1F50B}
-   ror      1 Reg   1  \u{1F50B}
-   mov      2 Reg   1  \u{1F50B}
-   not      1 Reg   1  \u{1F50B}
-   or       2 Reg   0.5\u{1F50B}
-   and      2 reg   0.5\u{1F50B}
-   xor      2 Reg   0.5\u{1F50B} \`\`\`
+  inc      1 Reg   2  \u{1F50B}
+  dec      1 Reg   2  \u{1F50B}
+  rol      1 Reg   1  \u{1F50B}
+  ror      1 Reg   1  \u{1F50B}
+  mov      2 Reg   1  \u{1F50B}
+  not      1 Reg   1  \u{1F50B}
+  or       2 Reg   0.5\u{1F50B}
+  and      2 Reg   0.5\u{1F50B}
+  xor      2 Reg   0.5\u{1F50B}
 
 All 2 register operations store the result in the first register.
-"or A B" will modify register A
-"mov A B" will copy register B value into register A`;
+"or A B" will modify register A.
+"mov A B" will copy register B value into register A.\`\`\``;
 
 const OperationCode = {
   inc: "inc",
@@ -191,55 +190,74 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  let { message, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
-  let { message, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
-  let { message, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
-  let { message, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
-  let { message, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
-  let { message, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
-  let { message, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
-  let { message, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
-  let { message, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  for (let message of messages) {
+    await sendMessage(msg.chat.id, message);
+  }
   sendGameStatus(msg.chat.id, gameState);
 }
 
@@ -257,12 +275,13 @@ function buildStatusMessage(gameState) {
   const objetivesLeft = () => gameState.objetives.length;
   const unresolved = () => gameState.unresolved;
 
-  return ` $> Player turn: ${playerTurn()}
+  return `\`\`\`
+\u{1F5A5}
+$> \u{1F468}\u{200D}\u{1F680} turn: ${playerTurn()}
 $> ${eneryLeft()} \u{1F50B} left
 $> Objetive:
 
-\`\`\`
-   ${currentObjetive()}
+-> ${currentObjetive()}
 -----------------
 A: ${registerA()}
 -----------------
@@ -272,19 +291,19 @@ C: ${registerC()}
 -----------------
 D: ${registerD()}
 -----------------
-\`\`\`
+
 $> Unresolved objetives: ${unresolved()}
 $> Objetives left: ${objetivesLeft()}
-$> /operations manual`;
+$> man\`\`\` /operations`;
+
 }
 
 function sendMessage(chatId, message) {
   if (!message) { return Promise.resolve(); }
-  return bot.sendMessage(chatId, message, { parse_mode: "Markdown"});
+  return bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
 }
 
 function sendGameStatus(chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
   return sendMessage(chatId, buildStatusMessage(gameState));
 }
-

@@ -9,6 +9,8 @@ const gameStateManager = {
     let gameState = { ...newGameState };
     gameState.id = gameId;
     gameState.numBits = numBits;
+    gameState.registers = { ...newRegisterState };
+    gameState.playerList = new Array();
 
     var { registerValues, objetives } = ObjetivesGenerator(numBits);
     gameState.objetives = objetives;
@@ -17,7 +19,6 @@ const gameStateManager = {
     gameState.registers.C = registerValues[1];
     gameState.registers.D = registerValues[2];
 
-    gameState.playerList = new Array();
     return this.JoinPlayer(gameState, playerId);
   },
 
@@ -89,9 +90,6 @@ const gameStateManager = {
     gameState.objetives.pop();
     gameState.unresolved = unresolvedObjetivesLeft();
     return gameState;
-  },
-  WinGame(gameState) {
-
   }
 
 };
@@ -101,8 +99,6 @@ const newGameState = {
   numBits: 0,
   unresolved: 1,
   started: false,
-  win: false,
-  loose: false,
   playerTurn: 0,
   registers: {
     A: 0,
@@ -110,6 +106,13 @@ const newGameState = {
     C: 0,
     D: 0
   }
+};
+
+const newRegisterState = {
+  A: 0,
+  B: 0,
+  C: 0,
+  D: 0
 };
 
 const newPlayerState = {

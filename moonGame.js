@@ -19,8 +19,10 @@ const Cpu_Bits = {
   max: 6
 };
 
-function Game(store) {
+const isPlayerTurn = (gameState, playerId) => gameState.playerList[gameState.playerTurn].name === playerId;
 
+function Game(store) {
+   
   return {
     async CreateGame(gameId, numBits, playerId) {
 
@@ -40,14 +42,16 @@ function Game(store) {
     },
 
     async JoinGame(gameId, playerId) {
+
       let gameState = await store.get(gameId);
-      if (!gameState) { return "Please, /creategame before joining on it."; }
-      if (gameState.started) { return "You can not join into an already started game!"; }
+
+      if (!gameState) { return `${playerId}. Please, /creategame before joining on it.`; }
+      if (gameState.started) { return `${playerId}. You can not join into an already started game.`; }
 
       gameState = StateManager.JoinPlayer(gameState, playerId);
 
       await store.set(gameId, gameState);
-      return `${playerId} has joined the game.`;
+      return `\u{1F468}\u{200D}\u{1F680} ${playerId} has joined the game.`;
     },
 
     async LeaveGame(gameId, playerId) {
@@ -56,7 +60,7 @@ function Game(store) {
 
       let result;
       let gameState = await store.get(gameId);
-      if (!gameState) { return "Please, /join a game before leave it."; }
+      if (!gameState) { return `${playerId}. There is no game to leave.`; }
 
       gameState = StateManager.LeavePlayer(gameState, playerId);
 
@@ -66,21 +70,20 @@ function Game(store) {
         return result;
       }
       await store.set(gameId, gameState);
-      return `${playerId} has left the game.`;
+      return `\u{1F468}\u{200D}\u{1F680} ${playerId} has left the game.`;
     },
 
     async StartGame(gameId) {
-      let message;
+     
       let gameState = await store.get(gameId);
       if (!gameState) {
-        message = "Please, /creategame before stat it.";
-        return { message: message, gameState: gameState };
+        return { message: `No game. Please, /creategame before start it.`, gameState };
       }
 
       gameState = StateManager.StartGame(gameState);
 
       await store.set(gameId, gameState);
-      return { message: "Game has been started.", gameState };
+      return { message: "Game has been started. \u{1F680} \u{1F314}", gameState };
     },
 
     async StatusGame(gameId) {
@@ -92,21 +95,33 @@ function Game(store) {
 
     async EndPlayerTurn(gameId, playerId) {
 
+      const isCurrentPlayerTurn = () => isPlayerTurn(gameState, playerId);
       const loose = () => gameState.unresolved === 5;
 
       let gameState = await store.get(gameId);
 
+      if (!gameState) {
+        return { message: "No game. /creategame first.", gameState};
+      } 
+
+      if (!gameState.started) {
+        return { message: `${playerId}. The game has not been started. Please /startgame first.`, gameState };
+      }
+
+      if (!isCurrentPlayerTurn()) {
+        return { message: `It is not your turn ${playerId}`, gameState};
+      }
+
       gameState = StateManager.EndTurn(gameState);
+
       if (loose()) {
-        gameState = StateManager.LooseGame(gameState);
         await this.CancelGame(gameId);
-        message = "You crash and died horrybly";
-        return { message: message, gameState: gameState };
+        return { message: "You have been unable to complete the tasks.You crashed \u{1F4A5} \u{1F314} and died horrybly \u{1F480}.", gameState };
       }
 
       await store.set(gameId, gameState);
 
-      return { message: `${playerId} ends turn.`, gameState: gameState };
+      return { message: `\u{1F468}\u{200D}\u{1F680} ${playerId} ends turn.`, gameState};
     },
 
     async CancelGame(gameId) {
@@ -116,7 +131,7 @@ function Game(store) {
 
     async ExecuteBitOperation(operation, gameId, playerId, register1, register2, ) {
 
-      const isPlayerTurn = () => gameState.playerList[gameState.playerTurn].name === playerId;
+      const isCurrentPlayerTurn = () => isPlayerTurn(gameState, playerId);
       const enoughEnergy = () => gameState.playerList[gameState.playerTurn].energy >= OperationCost[operation];
       const shouldEndTurn = () => gameState.playerList[gameState.playerTurn].energy === 0;
       const objetiveAccomplished = () => gameState.registers.A === gameState.objetives[gameState.objetives.length - 1];
@@ -124,43 +139,51 @@ function Game(store) {
       const loose = () => gameState.unresolved === 5;
 
       let gameState = await store.get(gameId);
-      let message;
-
-      if (!isPlayerTurn()) {
-        message = `It is not your turn ${playerId}`;
-        return { message: message, gameState: gameState };
+    
+      if (!gameState) {
+        return { messages: ["No game. /creategame first."], gameState };
       }
+
+      if (!gameState.started) {
+        return { message: [`${playerId}. The game has not been started. Please /startgame first.`], gameState };
+      }
+
+      if (!isCurrentPlayerTurn()) {
+        return { messages: [`It is not your turn ${playerId}`], gameState: gameState };
+      }
+
       if (!enoughEnergy()) {
-        message = `You do not have enough energy for ${operation} operation ${playerId}`;
-        return { message: message, gameState: gameState };
+        return { messages: [`You do not have enough energy for ${operation} operation ${playerId}`], gameState };
       }
 
       gameState = StateManager.ExecuteBitOperation(gameState, RegisterOperations(gameState.numBits)[operation], OperationCost[operation], register1, register2);
 
+      let messages = new Array();
+      messages.push(`${operation} operation applied.`);
+
       if (objetiveAccomplished()) {
         gameState = StateManager.AccomplishObjetive(gameState);
+       
+        messages.push("\u{2714} Objective accomplished.");
       }
-      if (win()) {
-        gameState = StateManager.WinGame(gameState);
-        await this.CancelGame(gameId);
-        message = "Congratulations. All objetives completed. You landed successful on the surface of the moon.";
-        return { message: message, gameState: gameState };
-      }
-
       if (shouldEndTurn()) {
         gameState = StateManager.EndTurn(gameState);
-        if (loose()) {
-          gameState = StateManager.LooseGame(gameState);
-          await this.CancelGame(gameId);
-          message = "You crashed and died horrybly.";
-          return { message: message, gameState: gameState };
-        }
+        messages.push(`\u{1F468}\u{200D}\u{1F680} ${playerId} ends turn.`);
+      }
+
+      if (loose()) {
+        await this.CancelGame(gameId);
+        messages.push("You have been unable to complete the tasks.You crashed \u{1F4A5} \u{1F314} and died horrybly \u{1F480}.");
+      }
+
+      if (win()) {
+        await this.CancelGame(gameId);
+        messages.push("\u{1F389} Congratulations.\u{1F38A} All objetives completed. You landed successful on the surface of the moon.");
       }
 
       await store.set(gameId, gameState);
 
-      message = `${operation} operation applied.`;
-      return { message: message, gameState: gameState };
+      return { messages: messages, gameState };
     }
 
   };
