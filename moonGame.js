@@ -1,38 +1,17 @@
 const StateManager = require('./gameStateManager');
 const RegisterOperations = require('./registerOperations');
-const utils = require('./utils');
-
-const OperationCost = {
-  inc: 2,
-  dec: 2,
-  rol: 1,
-  ror: 1,
-  mov: 1,
-  not: 1,
-  or: 0.5,
-  and: 0.5,
-  xor: 0.5
-};
-
-const Cpu_Bits = {
-  min: 4,
-  max: 6
-};
-
-const isPlayerTurn = (gameState, playerId) => gameState.playerList[gameState.playerTurn].name === playerId;
+const GameRules = require('./gameRules');
 
 function Game(store) {
    
   return {
     async CreateGame(gameId, numBits, playerId) {
 
-      const keepNumBitsRange = (bitsNum) => utils.Clamp(bitsNum, Cpu_Bits.min, Cpu_Bits.max);
-
-      numBits = keepNumBitsRange(numBits);
-
       let gameState = await store.get(gameId);
 
       if (gameState) { return "A game is currently in progress."; }
+          
+      numBits = GameRules.KeepNumBitsRange(numBits);
 
       gameState = StateManager.CreateNewGameState(gameId, playerId, numBits);
 
@@ -56,15 +35,15 @@ function Game(store) {
 
     async LeaveGame(gameId, playerId) {
 
-      const noPlayersLeft = () => gameState.playerList.length < 1;
-
+      const noPlayers = () => GameRules.NoPlayersLeft(gameState);
+      
       let result;
       let gameState = await store.get(gameId);
       if (!gameState) { return `${playerId}. There is no game to leave.`; }
-
+      
       gameState = StateManager.LeavePlayer(gameState, playerId);
 
-      if (noPlayersLeft()) {
+      if (noPlayers()) {
         result = "Last player left the game.";
         result = result + ' ' + await this.CancelGame(gameId);
         return result;
@@ -76,9 +55,7 @@ function Game(store) {
     async StartGame(gameId) {
      
       let gameState = await store.get(gameId);
-      if (!gameState) {
-        return { message: `No game. Please, /creategame before start it.`, gameState };
-      }
+      if (!gameState) { return { message: `No game. Please, /creategame before start it.`, gameState }; }
 
       gameState = StateManager.StartGame(gameState);
 
@@ -95,14 +72,12 @@ function Game(store) {
 
     async EndPlayerTurn(gameId, playerId) {
 
-      const isCurrentPlayerTurn = () => isPlayerTurn(gameState, playerId);
-      const loose = () => gameState.unresolved === 5;
+      const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
+      const loose = () => GameRules.MaxUnresolvedReached(gameState);
 
       let gameState = await store.get(gameId);
 
-      if (!gameState) {
-        return { message: "No game. /creategame first.", gameState};
-      } 
+      if (!gameState) { return { message: "No game. /creategame first.", gameState }; }
 
       if (!gameState.started) {
         return { message: `${playerId}. The game has not been started. Please /startgame first.`, gameState };
@@ -129,42 +104,40 @@ function Game(store) {
       return "Game has been cancelled.";
     },
 
-    async ExecuteBitOperation(operation, gameId, playerId, register1, register2, ) {
+    async ExecuteBitOperation(operation, gameId, playerId, register1, register2) {
 
-      const isCurrentPlayerTurn = () => isPlayerTurn(gameState, playerId);
-      const enoughEnergy = () => gameState.playerList[gameState.playerTurn].energy >= OperationCost[operation];
-      const shouldEndTurn = () => gameState.playerList[gameState.playerTurn].energy === 0;
-      const objetiveAccomplished = () => gameState.registers.A === gameState.objetives[gameState.objetives.length - 1];
-      const win = () => gameState.objetives.length === 0;
-      const loose = () => gameState.unresolved === 5;
+      const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
+      const enoughEnergy = () => GameRules.EnoughEnergyFor(gameState, operation);
+      const shouldEndTurn = () => GameRules.NoEnergyLeft(gameState);
+      const objetiveAccomplished = () => GameRules.ObjetiveIsInRegA(gameState);
+      const win = () => GameRules.NoObjetivesLeft(gameState);
+      const loose = () => GameRules.MaxUnresolvedReached(gameState);
 
       let gameState = await store.get(gameId);
     
-      if (!gameState) {
-        return { messages: ["No game. /creategame first."], gameState };
-      }
-
+      if (!gameState) { return { messages: ["No game. /creategame first."], gameState }; }
+      const rules = GameRules(gameState);
+    
       if (!gameState.started) {
-        return { message: [`${playerId}. The game has not been started. Please /startgame first.`], gameState };
+        return { messages: [`${playerId}. The game has not been started. Please /startgame first.`], gameState };
       }
 
       if (!isCurrentPlayerTurn()) {
-        return { messages: [`It is not your turn ${playerId}`], gameState: gameState };
+        return { messages: [`It is not your turn ${playerId}`], gameState };
       }
 
       if (!enoughEnergy()) {
         return { messages: [`You do not have enough energy for ${operation} operation ${playerId}`], gameState };
       }
 
-      gameState = StateManager.ExecuteBitOperation(gameState, RegisterOperations(gameState.numBits)[operation], OperationCost[operation], register1, register2);
+      gameState = StateManager.ExecuteBitOperation(gameState, RegisterOperations(gameState.numBits)[operation], GameRules.OperationCost(operation), register1, register2);
 
       let messages = new Array();
       messages.push(`${operation} operation applied.`);
 
       if (objetiveAccomplished()) {
         gameState = StateManager.AccomplishObjetive(gameState);
-       
-        messages.push("\u{2714} Objective accomplished.");
+        messages.push("\u{2705} Objective accomplished.");
       }
       if (shouldEndTurn()) {
         gameState = StateManager.EndTurn(gameState);

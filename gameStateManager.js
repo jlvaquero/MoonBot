@@ -1,6 +1,8 @@
 const ObjetivesGenerator = require('./objetives');
+const GameRules = require('./gameRules');
 
-const withSameName = (currentName) => (player) => player.name === currentName;
+const playerIs = (currentName) => (player) => player.name === currentName;
+const playerIsNot = (currentName) => (player) => player.name !== currentName;
 
 const gameStateManager = {
 
@@ -24,9 +26,7 @@ const gameStateManager = {
 
   JoinPlayer(gameState, newPlayerId) {
 
-    const playerJoining = withSameName(newPlayerId);
-
-    const alreadyJoined = () => gameState.playerList.findIndex(playerJoining) === -1 ? false : true;
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, newPlayerId);
 
     if (alreadyJoined()) { return gameState; }
 
@@ -39,17 +39,17 @@ const gameStateManager = {
 
   LeavePlayer(gameState, playerId) {
 
-    const playerLeaving = withSameName(playerId);
+    const ofPlayerLeaving = playerIs(playerId);
 
     const playerPosition = () => {
-      let position = gameState.playerList.findIndex(playerLeaving);
+      let position = gameState.playerList.findIndex(ofPlayerLeaving);
       return position ? position : gameState.playerTurn;
     };
 
     const nexPlayerTurn = () => (playerPosition() < gameState.playerTurn) ? gameState.playerTurn - 1 : gameState.playerTurn;
-    const withDifferentName = (player) => player.name !== playerId;
 
-    gameState.playerList = gameState.playerList.filter(withDifferentName);
+    const isNotLeavingPlayer = playerIsNot(playerId);
+    gameState.playerList = gameState.playerList.filter(isNotLeavingPlayer);
     gameState.playerTurn = nexPlayerTurn();
     return gameState;
   },
@@ -61,8 +61,8 @@ const gameStateManager = {
 
   EndTurn(gameState) {
 
-    const endRound = () => gameState.playerTurn === gameState.playerList.length - 1;
-    const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = 3; return playerState; });
+    const endRound = () => GameRules.LastPlayerPlaying(gameState);
+    const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = GameRules.MaxEnergy; return playerState; });
 
     if (endRound()) {
       gameState.playerTurn = 0;
@@ -117,7 +117,7 @@ const newRegisterState = {
 
 const newPlayerState = {
   name: '',
-  energy: 3
+  energy: GameRules.MaxEnergy
 };
 
 module.exports = gameStateManager;
