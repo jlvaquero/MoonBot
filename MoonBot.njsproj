@@ -33,6 +33,9 @@
     <Folder Include="test" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="gameEvents.js">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="gameRules.js">
       <SubType>Code</SubType>
     </Compile>

@@ -4,7 +4,7 @@
   "description": "tabletop moon game on telegram",
   "main": "moon.js",
   "scripts": {
-     "test": "mocha"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",
@@ -24,7 +24,8 @@
   "homepage": "https://github.com/jlvaquero/moonGame#readme",
   "dependencies": {
     "ioredis": "^4.14.1",
-    "node-telegram-bot-api": "^0.40.0"
+    "node-telegram-bot-api": "^0.40.0",
+    "sprintf-js": "^1.1.2"
   },
   "devDependencies": {
     "mocha": "^6.2.2"

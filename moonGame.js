@@ -1,162 +1,130 @@
 const StateManager = require('./gameStateManager');
 const RegisterOperations = require('./registerOperations');
 const GameRules = require('./gameRules');
+const GameEvents = require('./gameEvents');
+
+const eventsToMesagges = (messages, event) => {
+  messages.push(GameEvents.eventMessages[event]);
+  return messages;
+};
 
 function Game(store) {
-   
+
   return {
     async CreateGame(gameId, numBits, playerId) {
 
-      let gameState = await store.get(gameId);
+      let prevGameState = await store.get(gameId);
+      if (prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameAlreadyCreated]], gameState: prevGameState }; }
 
-      if (gameState) { return "A game is currently in progress."; }
-          
-      numBits = GameRules.KeepNumBitsRange(numBits);
+      let { events, gameState } = StateManager.CreateNewGameState(gameId, playerId, numBits);
 
-      gameState = StateManager.CreateNewGameState(gameId, playerId, numBits);
-
-      store.set(gameId, gameState);
-      return "Game created. Now, other group members can /joingame .";
-
+      let storing = store.set(gameId, gameState);
+      const messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     },
 
     async JoinGame(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
+      let prevGameState = await store.get(gameId);
+      if (!prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState: prevGameState }; }
 
-      if (!gameState) { return `${playerId}. Please, /creategame before joining on it.`; }
-      if (gameState.started) { return `${playerId}. You can not join into an already started game.`; }
+      let { events, gameState } = StateManager.JoinPlayer(prevGameState, playerId);
 
-      gameState = StateManager.JoinPlayer(gameState, playerId);
-
-      await store.set(gameId, gameState);
-      return `\u{1F468}\u{200D}\u{1F680} ${playerId} has joined the game.`;
+      let storing = store.set(gameId, gameState);
+      messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     },
 
     async LeaveGame(gameId, playerId) {
 
-      const noPlayers = () => GameRules.NoPlayersLeft(gameState);
-      
-      let result;
-      let gameState = await store.get(gameId);
-      if (!gameState) { return `${playerId}. There is no game to leave.`; }
-      
-      gameState = StateManager.LeavePlayer(gameState, playerId);
+      const noPlayerLeftEvent = (event) => event === GameEvents.noPlayersLeft;
+      const noPlayers = () => events.find(noPlayerLeftEvent);
+
+      let prevGameState = await store.get(gameId);
+      if (!prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState: prevGameState }; }
+
+      let { events, gameState } = StateManager.LeavePlayer(prevGameState, playerId);
 
       if (noPlayers()) {
-        result = "Last player left the game.";
-        result = result + ' ' + await this.CancelGame(gameId);
-        return result;
+        let result = await this.CancelGame(gameId);
+        return { messages: events.reduce(eventsToMesagges, new Array()).concat(result.messages), gameState: result.gameState };
       }
-      await store.set(gameId, gameState);
-      return `\u{1F468}\u{200D}\u{1F680} ${playerId} has left the game.`;
+
+      let storing = store.set(gameId, gameState);
+      const messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     },
 
-    async StartGame(gameId) {
-     
-      let gameState = await store.get(gameId);
-      if (!gameState) { return { message: `No game. Please, /creategame before start it.`, gameState }; }
+    async StartGame(gameId, playerId) {
 
-      gameState = StateManager.StartGame(gameState);
+      let prevGameState = await store.get(gameId);
+      if (!prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState: prevGameState }; }
 
-      await store.set(gameId, gameState);
-      return { message: "Game has been started. \u{1F680} \u{1F314}", gameState };
+      let { events, gameState } = StateManager.StartGame(prevGameState, playerId);
+
+      let storing = store.set(gameId, gameState);
+      const messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     },
 
     async StatusGame(gameId) {
 
       const gameState = await store.get(gameId);
-      return { message: gameState ? null : "No game. /creategame first.", gameState };
-
+      return { messages: gameState ? new Array() : [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState };
     },
 
     async EndPlayerTurn(gameId, playerId) {
 
-      const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
-      const loose = () => GameRules.MaxUnresolvedReached(gameState);
+      const looseGameEvent = (event) => event === GameEvents.gameLost;
+      const loose = () => events.find(looseGameEvent);
 
-      let gameState = await store.get(gameId);
+      let prevGameState = await store.get(gameId);
+      if (!prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState: prevGameState }; }
 
-      if (!gameState) { return { message: "No game. /creategame first.", gameState }; }
-
-      if (!gameState.started) {
-        return { message: `${playerId}. The game has not been started. Please /startgame first.`, gameState };
-      }
-
-      if (!isCurrentPlayerTurn()) {
-        return { message: `It is not your turn ${playerId}`, gameState};
-      }
-
-      gameState = StateManager.EndTurn(gameState);
+      let { events, gameState } = StateManager.EndTurn(prevGameState, playerId);
 
       if (loose()) {
-        await this.CancelGame(gameId);
-        return { message: "You have been unable to complete the tasks.You crashed \u{1F4A5} \u{1F314} and died horrybly \u{1F480}.", gameState };
+        let result = await this.CancelGame(gameId);
+        return { messages: events.reduce(eventsToMesagges, new Array()).concat(result.messages), gameState: result.gameState };
       }
 
-      await store.set(gameId, gameState);
-
-      return { message: `\u{1F468}\u{200D}\u{1F680} ${playerId} ends turn.`, gameState};
+      let storing = store.set(gameId, gameState);
+      const messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     },
 
     async CancelGame(gameId) {
       await store.del(gameId);
-      return "Game has been cancelled.";
+      return { messages: [GameEvents.eventMessages[GameEvents.gameCancelled]], gameState: null };
     },
 
     async ExecuteBitOperation(operation, gameId, playerId, register1, register2) {
 
-      const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
-      const enoughEnergy = () => GameRules.EnoughEnergyFor(gameState, operation);
-      const shouldEndTurn = () => GameRules.NoEnergyLeft(gameState);
-      const objetiveAccomplished = () => GameRules.ObjetiveIsInRegA(gameState);
-      const win = () => GameRules.NoObjetivesLeft(gameState);
-      const loose = () => GameRules.MaxUnresolvedReached(gameState);
+      const looseGameEvent = (event) => event === GameEvents.gameLost;
+      const loose = () => events.find(looseGameEvent);
+      const wonGameEvent = (event) => event === GameEvents.gameWon;
+      const won = () => events.find(wonGameEvent);
 
-      let gameState = await store.get(gameId);
-    
-      if (!gameState) { return { messages: ["No game. /creategame first."], gameState }; }
-      const rules = GameRules(gameState);
-    
-      if (!gameState.started) {
-        return { messages: [`${playerId}. The game has not been started. Please /startgame first.`], gameState };
+      let prevGameState = await store.get(gameId);
+      if (!prevGameState) { return { messages: [GameEvents.eventMessages[GameEvents.gameNotCreated]], gameState: prevGameState }; }
+
+      let { events, gameState } = StateManager.ExecuteBitOperation(prevGameState, playerId, RegisterOperations(prevGameState.numBits)[operation], GameRules.OperationCost(operation), register1, register2);
+
+      if (loose() || won()) {
+        let result = await this.CancelGame(gameId);
+        events.concat(result.events);
+        return { messages: events.reduce(eventsToMesagges, new Array()), gameState: result.gameState };
       }
-
-      if (!isCurrentPlayerTurn()) {
-        return { messages: [`It is not your turn ${playerId}`], gameState };
-      }
-
-      if (!enoughEnergy()) {
-        return { messages: [`You do not have enough energy for ${operation} operation ${playerId}`], gameState };
-      }
-
-      gameState = StateManager.ExecuteBitOperation(gameState, RegisterOperations(gameState.numBits)[operation], GameRules.OperationCost(operation), register1, register2);
-
-      let messages = new Array();
-      messages.push(`${operation} operation applied.`);
-
-      if (objetiveAccomplished()) {
-        gameState = StateManager.AccomplishObjetive(gameState);
-        messages.push("\u{2705} Objective accomplished.");
-      }
-      if (shouldEndTurn()) {
-        gameState = StateManager.EndTurn(gameState);
-        messages.push(`\u{1F468}\u{200D}\u{1F680} ${playerId} ends turn.`);
-      }
-
-      if (loose()) {
-        await this.CancelGame(gameId);
-        messages.push("You have been unable to complete the tasks.You crashed \u{1F4A5} \u{1F314} and died horrybly \u{1F480}.");
-      }
-
-      if (win()) {
-        await this.CancelGame(gameId);
-        messages.push("\u{1F389} Congratulations.\u{1F38A} All objetives completed. You landed successful on the surface of the moon.");
-      }
-
-      await store.set(gameId, gameState);
-
-      return { messages: messages, gameState };
+ 
+      let storing = store.set(gameId, gameState);
+      const messages = events.reduce(eventsToMesagges, new Array());
+      await storing;
+      return { messages, gameState };
     }
 
   };

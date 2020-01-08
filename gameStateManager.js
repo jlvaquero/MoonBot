@@ -1,5 +1,6 @@
 const ObjetivesGenerator = require('./objetives');
 const GameRules = require('./gameRules');
+const GameEvents = require('./gameEvents');
 
 const playerIs = (currentName) => (player) => player.name === currentName;
 const playerIsNot = (currentName) => (player) => player.name !== currentName;
@@ -8,61 +9,91 @@ const gameStateManager = {
 
   CreateNewGameState(gameId, playerId, numBits) {
 
-    let gameState = { ...newGameState };
-    gameState.id = gameId;
-    gameState.numBits = numBits;
-    gameState.registers = { ...newRegisterState };
-    gameState.playerList = new Array();
+    const events = new Array();
+
+    let createdGameState = { ...newGameState };
+    createdGameState.id = gameId;
+    createdGameState.numBits = GameRules.KeepNumBitsRange(numBits);
+    createdGameState.registers = { ...newRegisterState };
+    createdGameState.playerList = new Array();
 
     var { registerValues, objetives } = ObjetivesGenerator(numBits);
-    gameState.objetives = objetives;
+    createdGameState.objetives = objetives;
 
-    gameState.registers.B = registerValues[0];
-    gameState.registers.C = registerValues[1];
-    gameState.registers.D = registerValues[2];
+    createdGameState.registers.B = registerValues[0];
+    createdGameState.registers.C = registerValues[1];
+    createdGameState.registers.D = registerValues[2];
 
-    return this.JoinPlayer(gameState, playerId);
+    events.push(GameEvents.gameCreated);
+
+    let { joinEvents, gameState } = this.JoinPlayer(createdGameState, playerId);
+    events.concat(joinEvents);
+
+    return { events, gameState };
   },
 
-  JoinPlayer(gameState, newPlayerId) {
+  JoinPlayer(gameState, playerId) {
 
-    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, newPlayerId);
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, playerId);
 
-    if (alreadyJoined()) { return gameState; }
+    if (gameState.started) { return { events: [GameEvents.gameAlreadyStarted], gameState }; } 
+
+    if (alreadyJoined()) { return { events: [GameEvents.playerAlreadyJoined], gameState }; }
 
     let playerState = { ...newPlayerState };
-    playerState.name = newPlayerId;
-
+    playerState.name = playerId;
     gameState.playerList.push(playerState);
-    return gameState;
+
+    return { events: [GameEvents.playerJoined], gameState };
   },
 
   LeavePlayer(gameState, playerId) {
 
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, playerId);
+   
     const ofPlayerLeaving = playerIs(playerId);
-
     const playerPosition = () => {
-      let position = gameState.playerList.findIndex(ofPlayerLeaving);
+      const position = gameState.playerList.findIndex(ofPlayerLeaving);
       return position ? position : gameState.playerTurn;
     };
-
     const nexPlayerTurn = () => (playerPosition() < gameState.playerTurn) ? gameState.playerTurn - 1 : gameState.playerTurn;
+    const playerLeaving = playerIsNot(playerId);
+    const noPlayers = () => GameRules.NoPlayersLeft(gameState);
 
-    const isNotLeavingPlayer = playerIsNot(playerId);
-    gameState.playerList = gameState.playerList.filter(isNotLeavingPlayer);
+    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+
+    gameState.playerList = gameState.playerList.filter(playerLeaving);
     gameState.playerTurn = nexPlayerTurn();
-    return gameState;
+
+    const events = new Array();
+    events.push(GameEvents.playerLeft);
+
+    if (noPlayers()) { events.push(GameEvents.noPlayersLeft);} 
+
+    return { events, gameState };
   },
 
-  StartGame(gameState) {
+  StartGame(gameState, playerId) {
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, playerId);
+
+    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+
     gameState.started = true;
-    return gameState;
+    return { events: [GameEvents.gameStarted], gameState };
   },
 
-  EndTurn(gameState) {
-
+  EndTurn(gameState, playerId) {
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, playerId);
     const endRound = () => GameRules.LastPlayerPlaying(gameState);
     const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = GameRules.MaxEnergy; return playerState; });
+    const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
+    const loose = () => GameRules.MaxUnresolvedReached(gameState);
+
+    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+    if (!gameState.started) { return { events: [GameEvents.gameNotStarted], gameState }; }
+    if (!isCurrentPlayerTurn()) { return { events: [GameEvents.notPlayerTurn], gameState }; }
+
+    const events = new Array();
 
     if (endRound()) {
       gameState.playerTurn = 0;
@@ -71,15 +102,56 @@ const gameStateManager = {
     }
     else { gameState.playerTurn += 1; }
 
-    return gameState;
-
+    events.push(GameEvents.turnEnded);
+    if (loose()) { event.push(GameEvents.gameLost); }
+    return { events, gameState };
   },
 
-  ExecuteBitOperation(gameState, operation, cost, reg1, reg2) {
+  ExecuteBitOperation(gameState, playerId, operation, cost, reg1, reg2) {
+
+    const alreadyJoined = () => GameRules.PlayerIsInGame(gameState, playerId);
+    const isCurrentPlayerTurn = () => GameRules.IsPlayerTurn(gameState, playerId);
+    const enoughEnergy = () => GameRules.EnoughEnergyFor(gameState, operation);
+    const shouldEndTurn = () => GameRules.NoEnergyLeft(gameState);
+    const objetiveAccomplished = () => GameRules.ObjetiveIsInRegA(gameState);
+    const win = () => GameRules.NoObjetivesLeft(gameState);
+    const loose = () => GameRules.MaxUnresolvedReached(gameState);
+    const player = () => GameRules.CurrentPlayer(gameState);
+
+    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+    if (!gameState.started) { return { events: [GameEvents.gameNotStarted], gameState }; }
+    if (!isCurrentPlayerTurn()) { return { events: [GameEvents.notPlayerTurn], gameState }; }
+    if (!enoughEnergy()) { return { events: [GameEvents.notEnoughEnergy], gameState }; }
 
     gameState.registers[reg1] = operation(gameState.registers[reg1], gameState.registers[reg2]);
-    gameState.playerList[gameState.playerTurn].energy -= cost;
-    return gameState;
+    player().energy -= cost;
+
+    const events = new Array();
+    events.push(GameEvents.operationApplied);
+
+    if (objetiveAccomplished()) {
+      gameState = this.AccomplishObjetive(gameState);
+      events.push(GameEvents.objetiveAccomplished);
+    }
+
+    if (shouldEndTurn()) {
+      let { endTunrEvents, newGameState } = this.EndTurn(gameState);
+      events.concat(endTunrEvents);
+      gameState = newGameState;
+    }
+
+    if (loose()) {
+      events.push(GameEvents.gameLost);
+      return { events, gameState };
+    
+    }
+
+    if (win()) {
+      events.push(GameEvents.gameWon);
+      return { events, gameState };
+    }
+
+    return { events, gameState };
 
   },
 

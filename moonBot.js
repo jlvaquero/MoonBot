@@ -69,50 +69,50 @@ Add me to a group if you want to play with friends.
 You can use /help to see all available commands.`;
 
 async function CreateDefaultGameRequest(msg) {
-  let result = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
-  await sendMessage(msg.chat.id, result);
+  let { messages, _} = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
+  sendMessages(msg.chat.id, messages);
 }
 
 async function CreateGameRequest(msg, match) {
-  let result = await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
-  await sendMessage(msg.chat.id, result);
+  let { messages, _ } = await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
+  sendMessages(msg.chat.id, messages);
 }
 
 async function JoinGameRequest(msg) {
-  let result = await Game.JoinGame(msg.chat.id, msg.from.username);
-  await sendMessage(msg.chat.id, result);
+  let { messages, _ } = await Game.JoinGame(msg.chat.id, msg.from.username);
+  sendMessages(msg.chat.id, messages);
 }
 
 async function LeaveGameRequest(msg) {
-  let result = await Game.LeaveGame(msg.chat.id, msg.from.username);
-  await sendMessage(msg.chat.id, result);
+  let { messages, _ } = await Game.LeaveGame(msg.chat.id, msg.from.username);
+  sendMessages(msg.chat.id, messages);
 }
 
 async function StartGameRequest(msg) {
-  let { message, gameState } = await Game.StartGame(msg.chat.id);
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await Game.StartGame(msg.chat.id, msg.from.username);
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function StatusGameRequest(msg) {
-  let { message, gameState } = await Game.StatusGame(msg.chat.id);
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await Game.StatusGame(msg.chat.id);
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function EndTurnRequest(msg) {
-  let { message, gameState } = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-  await sendMessage(msg.chat.id, message);
+  let { messages, gameState } = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function CancellGameRequest(msg) {
-  let result = await Game.CancelGame(msg.chat.id);
-  await sendMessage(msg.chat.id, result);
+  let { messages, _ } = await Game.CancelGame(msg.chat.id);
+  sendMessages(msg.chat.id, messages);
 }
 
 function HelpRequest(msg) {
-  return sendMessage(msg.chat.id, help_message);
+  sendMessage(msg.chat.id, help_message);
 }
 
 const help_message =
@@ -137,7 +137,7 @@ const help_message =
 /xor - How to use: "/xor C B". Register C will be modified.`;
 
 function RulesRequest(msg) {
-  return sendMessage(msg.chat.id, rules_message);
+  sendMessage(msg.chat.id, rules_message);
 }
 
 const rules_message =
@@ -145,7 +145,7 @@ const rules_message =
 [Rule book](http://tiny.cc/moonboardgame-en)`;
 
 function OperationListRequest(msg) {
-  return sendMessage(msg.chat.id, opList_message);
+  sendMessage(msg.chat.id, opList_message);
 }
 
 const opList_message =
@@ -191,73 +191,54 @@ const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xo
 
 async function IncRequest(msg, match) {
   let { messages, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
   let { messages, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
   let { messages, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
   let { messages, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
   let { messages, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
   let { messages, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
   let { messages, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
   let { messages, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
   let { messages, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  for (let message of messages) {
-    await sendMessage(msg.chat.id, message);
-  }
+  await sendMessages(msg.chat.id, messages);
   sendGameStatus(msg.chat.id, gameState);
 }
 
@@ -298,12 +279,18 @@ $> man\`\`\` /operations`;
 
 }
 
+async function sendMessages(chatId, messages) {
+  for (let message of messages) {
+    await sendMessage(chatId, message);
+  }
+}
+
 function sendMessage(chatId, message) {
   if (!message) { return Promise.resolve(); }
-  return bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
 }
 
 function sendGameStatus(chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
-  return sendMessage(chatId, buildStatusMessage(gameState));
+  sendMessage(chatId, buildStatusMessage(gameState));
 }
