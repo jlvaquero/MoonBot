@@ -143,9 +143,9 @@ const gameStateManager = {
     }
 
     if (shouldEndTurn()) {
-      let { endTunrEvents, newGameState } = this.EndTurn(gameState);
-      events.concat(endTunrEvents);
-      gameState = newGameState;
+      let result = this.EndTurn(gameState);
+      events.concat(result.events);
+      gameState = result.gameState;
     }
 
     if (loose()) {

@@ -111,15 +111,15 @@ async function CancellGameRequest(msg) {
 }
 
 function HelpRequest(msg) {
-  sendMessage(msg.chat.id, msg.from.username, help_message);
+  sendMessage(msg.from.username, msg.chat.id, help_message);
 }
 
 function RulesRequest(msg) {
-  sendMessage(msg.chat.id, msg.from.username, rules_message);
+  sendMessage(msg.from.username, msg.chat.id, rules_message);
 }
 
 function OperationListRequest(msg) {
-  sendMessage(msg.chat.id, msg.from.username, opList_message);
+  sendMessage(msg.from.username, msg.chat.id, opList_message);
 }
 
 const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc);
@@ -169,7 +169,7 @@ async function NotRequest(msg, match) {
 
 async function OrRequest(msg, match) {
   const { events, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await endMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 

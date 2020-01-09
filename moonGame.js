@@ -94,7 +94,7 @@ function Game(store) {
 
       const prevGameState = await store.get(gameId);
       if (!prevGameState) { return { events: [GameEvents.gameNotCreated], gameState: prevGameState }; }
-
+      
       const { events, gameState } = StateManager.ExecuteBitOperation(prevGameState, playerId, RegisterOperations(prevGameState.numBits)[operation], Rules.OperationCost(operation), cpu_reg1, cpu_reg2);
 
       if (loose() || won()) {
