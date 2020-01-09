@@ -33,4 +33,17 @@ const Rules = {
   MaxEnergy: 3
 };
 
-module.exports = Rules;
+const OperationCode = {
+  inc: "inc",
+  dec: "dec",
+  rol: "rol",
+  ror: "ror",
+  mov: "mov",
+  not: "not",
+  or: "or",
+  and: "and",
+  xor: "xor"
+};
+
+module.exports.Rules = Rules;
+module.exports.OperationCode = OperationCode;

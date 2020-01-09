@@ -35,6 +35,11 @@ const bot = new TelegramBot(token(), {
 });*/
 /*bot.setWebHook(externalUrl + ':443/bot' + token);*/
 
+const GameEvents = require('./gameEvents');
+const { telegramEventMessages } = require('./eventMessages');
+const { OperationCode } = require('./gameRules');
+const { sprintf } = require('sprintf-js');
+
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateDefaultGameRequest);
 bot.onText(/^\/creategame ([4-6])$/, CreateGameRequest);
@@ -62,122 +67,60 @@ async function InitConversationRequest(msg) {
   bot.sendMessage(msg.chat.id, welcome_message(msg));
 }
 
-const welcome_message = (msg) =>
-  `Hello ${msg.from.username}.
-You can check the /rules or /creategame and start playing in solo mode.
-Add me to a group if you want to play with friends.
-You can use /help to see all available commands.`;
-
 async function CreateDefaultGameRequest(msg) {
-  let { messages, _} = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
-  sendMessages(msg.chat.id, messages);
+  let { events } = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
+  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
 }
 
 async function CreateGameRequest(msg, match) {
-  let { messages, _ } = await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
-  sendMessages(msg.chat.id, messages);
+  let { events } = await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
+  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
 }
 
 async function JoinGameRequest(msg) {
-  let { messages, _ } = await Game.JoinGame(msg.chat.id, msg.from.username);
-  sendMessages(msg.chat.id, messages);
+  let { events } = await Game.JoinGame(msg.chat.id, msg.from.username);
+  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
 }
 
 async function LeaveGameRequest(msg) {
-  let { messages, _ } = await Game.LeaveGame(msg.chat.id, msg.from.username);
-  sendMessages(msg.chat.id, messages);
+  let { events } = await Game.LeaveGame(msg.chat.id, msg.from.username);
+  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
 }
 
 async function StartGameRequest(msg) {
-  let { messages, gameState } = await Game.StartGame(msg.chat.id, msg.from.username);
-  await sendMessages(msg.chat.id, messages);
+  let { events, gameState } = await Game.StartGame(msg.chat.id, msg.from.username);
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function StatusGameRequest(msg) {
-  let { messages, gameState } = await Game.StatusGame(msg.chat.id);
-  await sendMessages(msg.chat.id, messages);
+  let { events, gameState } = await Game.StatusGame(msg.chat.id);
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function EndTurnRequest(msg) {
-  let { messages, gameState } = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-  await sendMessages(msg.chat.id, messages);
+  let { events, gameState } = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function CancellGameRequest(msg) {
-  let { messages, _ } = await Game.CancelGame(msg.chat.id);
-  sendMessages(msg.chat.id, messages);
+  let { events } = await Game.CancelGame(msg.chat.id);
+  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
 }
 
 function HelpRequest(msg) {
-  sendMessage(msg.chat.id, help_message);
+  sendMessage(msg.chat.id, msg.from.username, help_message);
 }
-
-const help_message =
-  `/rules - Shows a link about the game and pdf rules.
-/creategame - Create a new game.
-/joingame - Join into a created game. You can not join into a started game.
-/leavegame - Player leaves the game. If last player leaves, the game is cancelled.
-/startgame - Start the first round of a created game. Once started, no players can join it.
-/status - Shows the current game status like player turn, player energy, current objetive, register values, unresolved objetives queue and objetives left.
-/operations - Shows the list of register operations and its energy cost.
-/endturn - Player ends the current turn.
-/cancelgame - Cancel the created game. It can not be resumed.
-/help - Shows this command list.
-/inc - How to use: "/inc B".
-/dec - How to use: "/dec B".
-/rol - How to use: "/rol B".
-/ror - How to use: "/ror B".
-/mov - How to use: "/mov A C". Register A will be modified.
-/not - How to use: "/not D".
-/or - How to use: "/or C B". Register C will be modified.
-/and - How to use: "/and C B". Register C will be modified.
-/xor - How to use: "/xor C B". Register C will be modified.`;
 
 function RulesRequest(msg) {
-  sendMessage(msg.chat.id, rules_message);
+  sendMessage(msg.chat.id, msg.from.username, rules_message);
 }
-
-const rules_message =
-  `[What is moon (1110011)?](http://compus.deusto.es/moon/)\n
-[Rule book](http://tiny.cc/moonboardgame-en)`;
 
 function OperationListRequest(msg) {
-  sendMessage(msg.chat.id, opList_message);
+  sendMessage(msg.chat.id, msg.from.username, opList_message);
 }
-
-const opList_message =
-  `
-\`\`\`
-Operation  Target  Cost
----------  ------  ----
-  inc      1 Reg   2  \u{1F50B}
-  dec      1 Reg   2  \u{1F50B}
-  rol      1 Reg   1  \u{1F50B}
-  ror      1 Reg   1  \u{1F50B}
-  mov      2 Reg   1  \u{1F50B}
-  not      1 Reg   1  \u{1F50B}
-  or       2 Reg   0.5\u{1F50B}
-  and      2 Reg   0.5\u{1F50B}
-  xor      2 Reg   0.5\u{1F50B}
-
-All 2 register operations store the result in the first register.
-"or A B" will modify register A.
-"mov A B" will copy register B value into register A.\`\`\``;
-
-const OperationCode = {
-  inc: "inc",
-  dec: "dec",
-  rol: "rol",
-  ror: "ror",
-  mov: "mov",
-  not: "not",
-  or: "or",
-  and: "and",
-  xor: "xor"
-};
 
 const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc);
 const ExecuteDecOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.dec);
@@ -190,55 +133,55 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  let { messages, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
-  let { messages, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
-  let { messages, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
-  let { messages, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
-  let { messages, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
-  let { messages, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
-  let { messages, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await endMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
-  let { messages, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
-  let { messages, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, messages);
+  const { events, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
   sendGameStatus(msg.chat.id, gameState);
 }
 
@@ -279,18 +222,77 @@ $> man\`\`\` /operations`;
 
 }
 
-async function sendMessages(chatId, messages) {
+function eventToMesagge(event) {
+  if (event === GameEvents.gameStatusConsulted) { return null; }
+  else { return telegramEventMessages[event]; }
+}
+
+async function sendMessages(chatId, playerId, messages) {
+
+  const sender = sendMessage.bind(undefined, playerId);
+
   for (let message of messages) {
-    await sendMessage(chatId, message);
+    await sender(chatId, message);
   }
 }
 
-function sendMessage(chatId, message) {
+function sendMessage(playerId, chatId, message) {
   if (!message) { return Promise.resolve(); }
-  bot.sendMessage(chatId, message, { parse_mode: "Markdown" });
+  return bot.sendMessage(chatId, sprintf(message, playerId), { parse_mode: "Markdown" });
 }
 
 function sendGameStatus(chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
-  sendMessage(chatId, buildStatusMessage(gameState));
+  sendMessage(undefined, chatId, buildStatusMessage(gameState));
 }
+
+function welcome_message(msg) {
+  return `Hello ${msg.from.username}.
+You can check the /rules or /creategame and start playing in solo mode.
+Add me to a group if you want to play with friends.
+You can use /help to see all available commands.`;
+}
+
+const help_message =
+  `/rules - Shows a link about the game and pdf rules.
+/creategame - Create a new game.
+/joingame - Join into a created game. You can not join into a started game.
+/leavegame - Player leaves the game. If last player leaves, the game is cancelled.
+/startgame - Start the first round of a created game. Once started, no players can join it.
+/status - Shows the current game status like player turn, player energy, current objetive, register values, unresolved objetives queue and objetives left.
+/operations - Shows the list of register operations and its energy cost.
+/endturn - Player ends the current turn.
+/cancelgame - Cancel the created game. It can not be resumed.
+/help - Shows this command list.
+/inc - How to use: "/inc B".
+/dec - How to use: "/dec B".
+/rol - How to use: "/rol B".
+/ror - How to use: "/ror B".
+/mov - How to use: "/mov A C". Register A will be modified.
+/not - How to use: "/not D".
+/or - How to use: "/or C B". Register C will be modified.
+/and - How to use: "/and C B". Register C will be modified.
+/xor - How to use: "/xor C B". Register C will be modified.`;
+
+const rules_message =
+  `[What is moon (1110011)?](http://compus.deusto.es/moon/)\n
+[Rule book](http://tiny.cc/moonboardgame-en)`;
+
+const opList_message =
+  `
+\`\`\`
+Operation  Target  Cost
+---------  ------  ----
+  inc      1 Reg   2  \u{1F50B}
+  dec      1 Reg   2  \u{1F50B}
+  rol      1 Reg   1  \u{1F50B}
+  ror      1 Reg   1  \u{1F50B}
+  mov      2 Reg   1  \u{1F50B}
+  not      1 Reg   1  \u{1F50B}
+  or       2 Reg   0.5\u{1F50B}
+  and      2 Reg   0.5\u{1F50B}
+  xor      2 Reg   0.5\u{1F50B}
+
+All 2 register operations store the result in the first register.
+"or A B" will modify register A.
+"mov A B" will copy register B value into register A.\`\`\``;
