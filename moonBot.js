@@ -1,4 +1,7 @@
-﻿const TelegramBot = require('node-telegram-bot-api');
+﻿const { telegramEventMessages } = require('./eventMessages');
+const { OperationCode } = require('./gameRules');
+const { sprintf } = require('sprintf-js');
+const TelegramBot = require('node-telegram-bot-api');
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -6,6 +9,19 @@ port: process.env.REDIS_DB_PORT,
 host: process.env.REDIS_DB_HOST,
 password: process.env.REDIS_DB_PASSWORD
 });*/
+
+const token = () => process.env.MOON_BOT_TOKEN;
+const bot = new TelegramBot(token(), {
+  polling: true
+});
+/*var bot = new TelegramBot(token, {
+ webHook: {
+  port: port,
+  host: host
+ }
+});*/
+/*bot.setWebHook(externalUrl + ':443/bot' + token);*/
+
 
 const FakeStore = {
   games: new Map(),
@@ -22,23 +38,13 @@ const FakeStore = {
 };
 
 const Game = require('./moonGame')(FakeStore);
+const eventStream = Game.EventStream;
 
-const token = () => process.env.MOON_BOT_TOKEN;
-const bot = new TelegramBot(token(), {
-  polling: true
+eventStream.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
+  }
 });
-/*var bot = new TelegramBot(token, {
- webHook: {
-  port: port,
-  host: host
- }
-});*/
-/*bot.setWebHook(externalUrl + ':443/bot' + token);*/
-
-const GameEvents = require('./gameEvents');
-const { telegramEventMessages } = require('./eventMessages');
-const { OperationCode } = require('./gameRules');
-const { sprintf } = require('sprintf-js');
 
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateDefaultGameRequest);
@@ -68,46 +74,38 @@ async function InitConversationRequest(msg) {
 }
 
 async function CreateDefaultGameRequest(msg) {
-  let { events } = await Game.CreateGame(msg.chat.id, 4, msg.from.username);
-  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await Game.CreateGame(msg.chat.id, 4, msg.from.username);
 }
 
 async function CreateGameRequest(msg, match) {
-  let { events } = await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
-  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
 }
 
 async function JoinGameRequest(msg) {
-  let { events } = await Game.JoinGame(msg.chat.id, msg.from.username);
-  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await Game.JoinGame(msg.chat.id, msg.from.username);
 }
 
 async function LeaveGameRequest(msg) {
-  let { events } = await Game.LeaveGame(msg.chat.id, msg.from.username);
-  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await Game.LeaveGame(msg.chat.id, msg.from.username);
 }
 
 async function StartGameRequest(msg) {
-  let { events, gameState } = await Game.StartGame(msg.chat.id, msg.from.username);
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await Game.StartGame(msg.chat.id, msg.from.username);
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function StatusGameRequest(msg) {
-  let { events, gameState } = await Game.StatusGame(msg.chat.id);
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await Game.StatusGame(msg.chat.id, msg.from.username);
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function EndTurnRequest(msg) {
-  let { events, gameState } = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function CancellGameRequest(msg) {
-  let { events } = await Game.CancelGame(msg.chat.id);
-  sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
+  await Game.CancelGame(msg.chat.id);
 }
 
 function HelpRequest(msg) {
@@ -133,56 +131,47 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  const { events, gameState } = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
-  const { events, gameState } = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
-  const { events, gameState } = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
-  const { events, gameState } = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
-  const { events, gameState } = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
-  const { events, gameState } = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
-  const { events, gameState } = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState  = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
-  const { events, gameState } = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
-  const { events, gameState } = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
-  await sendMessages(msg.chat.id, msg.from.username, events.map(eventToMesagge));
-  sendGameStatus(msg.chat.id, gameState);
+  const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 function buildStatusMessage(gameState) {
@@ -222,28 +211,14 @@ $> man\`\`\` /operations`;
 
 }
 
-function eventToMesagge(event) {
-  if (event === GameEvents.gameStatusConsulted) { return null; }
-  else { return telegramEventMessages[event]; }
-}
-
-async function sendMessages(chatId, playerId, messages) {
-
-  const sender = sendMessage.bind(undefined, playerId);
-
-  for (let message of messages) {
-    await sender(chatId, message);
-  }
-}
-
 function sendMessage(playerId, chatId, message) {
   if (!message) { return Promise.resolve(); }
   return bot.sendMessage(chatId, sprintf(message, playerId), { parse_mode: "Markdown" });
 }
 
-function sendGameStatus(chatId, gameState) {
+async function sendGameStatus(playerId, chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
-  sendMessage(undefined, chatId, buildStatusMessage(gameState));
+  return await sendMessage(playerId, chatId, buildStatusMessage(gameState));
 }
 
 function welcome_message(msg) {

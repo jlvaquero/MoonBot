@@ -1,18 +1,22 @@
 const ObjetivesGenerator = require('./objetives');
 const { Rules } = require('./gameRules');
 const GameEvents = require('./gameEvents');
+const { Subject } = require('rxjs');
 
 const playerIs = (currentName) => (player) => player.name === currentName;
 const playerIsNot = (currentName) => (player) => player.name !== currentName;
 
+const eventStream = new Subject();
+
 const gameStateManager = {
+
+  EventStream: eventStream,
 
   CreateNewGameState(gameId, playerId, numBits) {
 
-    let events = new Array();
     var { registerValues, objetives } = ObjetivesGenerator(numBits);
 
-    let createdGameState = Object.assign(
+    let gameState = Object.assign(
       { ...newGameState },
       {
         id: gameId,
@@ -28,31 +32,35 @@ const gameStateManager = {
           })
       });
 
-    events.push(GameEvents.gameCreated);
+    this.EventStream.next({ eventType: GameEvents.gameCreated, gameId: gameState.id, playerId });
+    gameState = this.JoinPlayer(gameState, playerId);
 
-    let { joinEvents, gameState } = this.JoinPlayer(createdGameState, playerId);
-    events = events.concat(joinEvents);
-
-    return { events, gameState };
+    return gameState;
   },
 
   JoinPlayer(gameState, playerId) {
 
     const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
 
-    if (gameState.started) { return { events: [GameEvents.gameAlreadyStarted], gameState }; }
+    if (gameState.started) {
+      this.EventStream.next({ eventType: GameEvents.gameAlreadyStarted, gameId: gameState.id, playerId });
+      return null;
+    }
 
-    if (alreadyJoined()) { return { events: [GameEvents.playerAlreadyJoined], gameState }; }
+    if (alreadyJoined()) {
+      this.EventStream.next({ eventType: GameEvents.playerAlreadyJoined, gameId: gameState.id, playerId });
+      return null;
+    }
 
     let playerState = Object.assign(
       { ...newPlayerState },
       {
         name: playerId
       });
-   // playerState.name = playerId;
+ 
     gameState.playerList.push(playerState);
-
-    return { events: [GameEvents.playerJoined], gameState };
+    this.EventStream.next({ eventType: GameEvents.playerJoined, gameId: gameState.id, playerId });
+    return gameState;
   },
 
   LeavePlayer(gameState, playerId) {
@@ -68,26 +76,41 @@ const gameStateManager = {
     const playerLeaving = playerIsNot(playerId);
     const noPlayers = () => Rules.NoPlayersLeft(gameState);
 
-    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+    if (!alreadyJoined()) {
+      this.EventStream.next({ eventType: GameEvents.playerNotJoined, gameId: gameState.id, playerId });
+      return null;
+    }
 
     gameState.playerList = gameState.playerList.filter(playerLeaving);
     gameState.playerTurn = nexPlayerTurn();
 
-    const events = new Array();
-    events.push(GameEvents.playerLeft);
+    this.EventStream.next({ eventType: GameEvents.playerLeft, gameId: gameState.id, playerId });
 
-    if (noPlayers()) { events.push(GameEvents.noPlayersLeft); }
+    if (noPlayers()) {
+      this.EventStream.next({ eventType: GameEvents.noPlayersLeft, gameId: gameState.id, playerId });
+      return null;
+    }
 
-    return { events, gameState };
+    return gameState;
   },
 
   StartGame(gameState, playerId) {
     const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
+    const alreadyStarted = () => gameState.started;
 
-    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
+    if (!alreadyJoined()) {
+      this.EventStream.next({ eventType: GameEvents.playerNotJoined, gameId: gameState.id, playerId });
+      return null;
+    }
+
+    if (alreadyStarted()) {
+      this.EventStream.next({ eventType: GameEvents.gameAlreadyStarted, gameId: gameState.id, playerId });
+      return null;
+    }
 
     gameState.started = true;
-    return { events: [GameEvents.gameStarted], gameState };
+    this.EventStream.next({ eventType: GameEvents.gameStarted, gameId: gameState.id, playerId });
+    return gameState;
   },
 
   EndTurn(gameState, playerId) {
@@ -97,23 +120,33 @@ const gameStateManager = {
     const isCurrentPlayerTurn = () => Rules.IsPlayerTurn(gameState, playerId);
     const loose = () => Rules.MaxUnresolvedReached(gameState);
 
-    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
-    if (!gameState.started) { return { events: [GameEvents.gameNotStarted], gameState }; }
-    if (!isCurrentPlayerTurn()) { return { events: [GameEvents.notPlayerTurn], gameState }; }
-
-    const events = new Array();
+    if (!alreadyJoined()) {
+      this.EventStream.next({ eventType: GameEvents.playerNotJoined, gameId: gameState.id, playerId });
+      return gameState;
+    }
+    if (!gameState.started) {
+      this.EventStream.next({ eventType: GameEvents.gameNotStarted, gameId: gameState.id, playerId });
+      return null;
+    }
+    if (!isCurrentPlayerTurn()) {
+      this.EventStream.next({ eventType: GameEvents.notPlayerTurn, gameId: gameState.id, playerId });
+      return null;
+    }
 
     if (endRound()) {
       gameState.playerTurn = 0;
       gameState.unresolved += 1;
       gameState.playerList = resetEnergy();
-      if (loose()) { events.push(GameEvents.gameLost); }
     }
     else { gameState.playerTurn += 1; }
 
-    events.push(GameEvents.turnEnded);
+    this.EventStream.next({ eventType: GameEvents.turnEnded, gameId: gameState.id, playerId });
+    if (loose()) {
+      this.EventStream.next({ eventType: GameEvents.gameLost, gameId: gameState.id, playerId });
+      return null;
+    }
     
-    return { events, gameState };
+    return gameState;
   },
 
   ExecuteBitOperation(gameState, playerId, operation, cost, reg1, reg2) {
@@ -124,52 +157,55 @@ const gameStateManager = {
     const shouldEndTurn = () => Rules.NoEnergyLeft(gameState);
     const objetiveAccomplished = () => Rules.ObjetiveIsInRegA(gameState);
     const win = () => Rules.NoObjetivesLeft(gameState);
-    const loose = () => Rules.MaxUnresolvedReached(gameState);
     const player = () => Rules.CurrentPlayer(gameState);
 
-    if (!alreadyJoined()) { return { events: [GameEvents.playerNotJoined], gameState }; }
-    if (!gameState.started) { return { events: [GameEvents.gameNotStarted], gameState }; }
-    if (!isCurrentPlayerTurn()) { return { events: [GameEvents.notPlayerTurn], gameState }; }
-    if (!enoughEnergy()) { return { events: [GameEvents.notEnoughEnergy], gameState }; }
+    if (!alreadyJoined()) {
+      this.EventStream.next({ eventType: GameEvents.playerNotJoined, gameId: gameState.id, playerId });
+      return null;
+    }
+    if (!gameState.started) {
+      this.EventStream.next({ eventType: GameEvents.gameNotStarted, gameId: gameState.id, playerId });
+      return null;
+    }
+    if (!isCurrentPlayerTurn()) {
+      this.EventStream.next({ eventType: GameEvents.notPlayerTurn, gameId: gameState.id, playerId });
+      return null;
+    }
+    if (!enoughEnergy()) {
+      this.EventStream.next({ eventType: GameEvents.notEnoughEnergy, gameId: gameState.id, playerId });
+      return null;
+    }
 
     gameState.registers[reg1] = operation(gameState.registers[reg1], gameState.registers[reg2]);
     player().energy -= cost;
 
-    let events = new Array();
-    events.push(GameEvents.operationApplied);
+    this.EventStream.next({ eventType: GameEvents.operationApplied, gameId: gameState.id, playerId });
 
     if (objetiveAccomplished()) {
-      gameState = this.AccomplishObjetive(gameState);
-      events.push(GameEvents.objetiveAccomplished);
-    }
-
-    if (shouldEndTurn()) {
-      let result = this.EndTurn(gameState, playerId);
-      events = events.concat(result.events);
-      gameState = result.gameState;
-    }
-
-    if (loose()) {
-      events.push(GameEvents.gameLost);
-      return { events, gameState };
-
+      gameState = this.AccomplishObjetive(gameState, playerId);
     }
 
     if (win()) {
-      events.push(GameEvents.gameWon);
-      return { events, gameState };
+      this.EventStream.next({ eventType: GameEvents.gameWon, gameId: gameState.id, playerId });
+      return null;
     }
 
-    return { events, gameState };
+    if (shouldEndTurn()) {
+      gameState = this.EndTurn(gameState, playerId);
+    }
+
+    return gameState;
 
   },
 
-  AccomplishObjetive(gameState) {
+  AccomplishObjetive(gameState, playerId) {
 
     const unresolvedObjetivesLeft = () => gameState.unresolved > 1 ? gameState.unresolved - 1 : gameState.unresolved;
 
     gameState.objetives.pop();
     gameState.unresolved = unresolvedObjetivesLeft();
+
+    this.EventStream.next({ eventType: GameEvents.objetiveAccomplished, gameId: gameState.id, playerId });
     return gameState;
   }
 
