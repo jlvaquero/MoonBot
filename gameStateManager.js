@@ -9,7 +9,7 @@ const gameStateManager = {
 
   CreateNewGameState(gameId, playerId, numBits) {
 
-    const events = new Array();
+    let events = new Array();
     var { registerValues, objetives } = ObjetivesGenerator(numBits);
 
     let createdGameState = Object.assign(
@@ -31,7 +31,7 @@ const gameStateManager = {
     events.push(GameEvents.gameCreated);
 
     let { joinEvents, gameState } = this.JoinPlayer(createdGameState, playerId);
-    events.concat(joinEvents);
+    events = events.concat(joinEvents);
 
     return { events, gameState };
   },
@@ -107,11 +107,12 @@ const gameStateManager = {
       gameState.playerTurn = 0;
       gameState.unresolved += 1;
       gameState.playerList = resetEnergy();
+      if (loose()) { events.push(GameEvents.gameLost); }
     }
     else { gameState.playerTurn += 1; }
 
     events.push(GameEvents.turnEnded);
-    if (loose()) { events.push(GameEvents.gameLost); }
+    
     return { events, gameState };
   },
 
@@ -134,7 +135,7 @@ const gameStateManager = {
     gameState.registers[reg1] = operation(gameState.registers[reg1], gameState.registers[reg2]);
     player().energy -= cost;
 
-    const events = new Array();
+    let events = new Array();
     events.push(GameEvents.operationApplied);
 
     if (objetiveAccomplished()) {
@@ -143,8 +144,8 @@ const gameStateManager = {
     }
 
     if (shouldEndTurn()) {
-      let result = this.EndTurn(gameState);
-      events.concat(result.events);
+      let result = this.EndTurn(gameState, playerId);
+      events = events.concat(result.events);
       gameState = result.gameState;
     }
 

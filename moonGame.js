@@ -99,7 +99,7 @@ function Game(store) {
 
       if (loose() || won()) {
         const result = await this.CancelGame(gameId);
-        return { messages: events.concat(result.events), gameState: result.gameState };
+        return { events: events.concat(result.events), gameState: result.gameState };
       }
  
       await store.set(gameId, gameState);
