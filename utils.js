@@ -30,9 +30,24 @@ function Clamp(num, min, max) {
   return Math.min(Math.max(num, min), max);
 }
 
+function pipe(until, onUntilValue, ...fns) {
+
+  return (input) => {
+
+    for (fnc of fns) {
+      temp = fnc(input);
+      if (until(temp)) return onUntilValue;
+      input = Object.assign(input, temp); 
+    }
+    return input;
+  };
+}
+
 module.exports.RandomInRange = RandomInRange;
 module.exports.Shuffle = Shuffle;
 module.exports.GenerateRandomSet = GenerateRandomSet;
 module.exports.Range = Range;
 module.exports.FilterArrWithSet = FilterArrWithSet;
 module.exports.Clamp = Clamp;
+module.exports.pipe = pipe;
+

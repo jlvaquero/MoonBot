@@ -160,7 +160,7 @@ async function NotRequest(msg, match) {
 }
 
 async function OrRequest(msg, match) {
-  const gameState  = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 

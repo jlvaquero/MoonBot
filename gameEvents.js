@@ -8,6 +8,7 @@ const gameNotStarted = Symbol.for("GAME_NOT_STARTED");
 const gameAlreadyStarted = Symbol.for("GAME_ALREADY_STARTED");
 const gameAlreadyCreated = Symbol.for("GAME_ALREADY_CREATED");
 const gameStatusConsulted = Symbol.for("GAME_STAUTS_CONSULTED");
+const gameStatusChanged = Symbol.for("GAME_STAUTS_CHANGED");
 
 const playerAlreadyJoined = Symbol.for("PLAYER_ALREADY_JOINED");
 const playerJoined = Symbol.for("PLAYER_JOINED");
@@ -31,6 +32,7 @@ module.exports.gameNotStarted = gameNotStarted;
 module.exports.gameAlreadyStarted = gameAlreadyStarted;
 module.exports.gameAlreadyCreated = gameAlreadyCreated;
 module.exports.gameStatusConsulted = gameStatusConsulted;
+module.exports.gameStatusChanged = gameStatusChanged;
 
 module.exports.playerAlreadyJoined = playerAlreadyJoined;
 module.exports.playerJoined = playerJoined;

@@ -28,6 +28,7 @@ const Rules = {
   EnoughEnergyFor(gameState, operation) { return this.CurrentPlayer(gameState).energy >= OperationCost[operation]; },
   ObjetiveIsInRegA(gameState) { return gameState.registers.A === gameState.objetives[gameState.objetives.length - 1]; },
   NoEnergyLeft(gameState) { return this.CurrentPlayer(gameState).energy === 0; },
+  NoUnresolvedLeft(gameState) { return gameState.unresolved === 0},
   OperationCost(op) { return OperationCost[op]; },
   LastPlayerPlaying(gameState) { return gameState.playerTurn === gameState.playerList.length - 1; },
   MaxEnergy: 3

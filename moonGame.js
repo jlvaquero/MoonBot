@@ -6,13 +6,20 @@ const { filter } = require('rxjs/operators');
 
 function Game(store) {
 
-  const eventStream = StateManager.EventStream;
-  const cancellGameEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameLost) || (event.eventType === GameEvents.gameWon) || event.eventType === GameEvents.noPlayersLeft));
+ const eventStream = StateManager.EventStream;
 
+  const cancellGameEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameLost) || (event.eventType === GameEvents.gameWon) || event.eventType === GameEvents.noPlayersLeft));
   cancellGameEvents.subscribe({
     async next(event) {
       await gameAPI.CancelGame(event.gameId, event.playerId);
       }
+  });
+
+  const stateChangedEvent = eventStream.pipe(filter(event => event.eventType === GameEvents.gameStatusChanged));
+  stateChangedEvent.subscribe({
+    async next(event) {
+      await store.set(event.gameState.id, event.gameState);
+    }
   });
 
   const gameAPI = {
@@ -23,11 +30,10 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (gameState) {
         eventStream.next({ eventType: GameEvents.gameAlreadyCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
 
-      gameState = StateManager.CreateNewGameState(gameId, playerId, numBits);
-      await  store.set(gameId, gameState);  
+      gameState = StateManager.CreateNewGameState({ gameId, playerId, numBits }).gameState;
       return gameState;
     },
 
@@ -36,11 +42,10 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
-      gameState = StateManager.JoinPlayer(gameState, playerId);
 
-      if (gameState) { await store.set(gameId, gameState); }
+      gameState = StateManager.JoinPlayer({ gameState, playerId }).gameState;
       return gameState;
     },
 
@@ -49,12 +54,10 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
 
-      gameState = StateManager.LeavePlayer(gameState, playerId);
-
-      if (gameState) { await store.set(gameId, gameState); }
+      gameState = StateManager.LeavePlayer({ gameState, playerId }).gameState;
       return gameState;
     },
 
@@ -63,21 +66,21 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
 
-      gameState = StateManager.StartGame(gameState, playerId);
-
-      if (gameState) { await store.set(gameId, gameState);}
+      gameState = StateManager.StartGame({ gameState, playerId }).gameState;
       return gameState;
     },
 
     async StatusGame(gameId, playerId) {
-      const gameState = await store.get(gameId);
+
+      let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
+
       eventStream.next({ eventType: GameEvents.gameStatusConsulted, gameId: gameId, playerId });
       return gameState;
     },
@@ -87,12 +90,10 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
 
-      gameState = StateManager.EndTurn(gameState, playerId);
-
-      if (gameState) { await store.set(gameId, gameState); }
+      gameState = StateManager.EndTurn({ gameState, playerId }).gameState;
       return gameState;
     },
 
@@ -106,12 +107,11 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
-        return gameState;
+        return null;
       }
       
-      gameState = StateManager.ExecuteBitOperation(gameState, playerId, RegisterOperations(gameState.numBits)[operation], Rules.OperationCost(operation), cpu_reg1, cpu_reg2);
+      gameState = StateManager.ExecuteBitOperation({ gameState, playerId, operation: RegisterOperations(gameState.numBits)[operation], cost: Rules.OperationCost(operation), cpu_reg1, cpu_reg2 }).gameState;
 
-      if (gameState) { await store.set(gameId, gameState); }
       return gameState;
     }
   };

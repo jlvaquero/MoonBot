@@ -11,7 +11,7 @@ const telegramEventMessages = {
   [GameEvents.gameNotStarted]: "%s. Game has not been started. /startgame to start the first round.",
   [GameEvents.gameAlreadyStarted]: "%s. You can not do that when a game has been started.",
   [GameEvents.gameAlreadyCreated]: "%s. A Game is already created.",
-  [GameEvents.gameStatusConsulted] : null,
+ // [GameEvents.gameStatusConsulted] : null,
   [GameEvents.playerAlreadyJoined]: "%s. You are already joined.",
   [GameEvents.playerJoined]: "\u{1F468}\u{200D}\u{1F680} %s has joined the game.",
   [GameEvents.playerNotJoined]: "%s. You are not joined into the game. /joingame if you want to play.",
