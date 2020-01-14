@@ -190,7 +190,7 @@ function raiseGameStatusChanged({ gameState }) {
   return { gameState };
 }
 
-function createGame({ gameId, playerId, numBits }) {
+function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs, maxEnergy and events
 
   var { registerValues, objetives } = ObjetivesGenerator(numBits);
 
@@ -211,7 +211,7 @@ function createGame({ gameId, playerId, numBits }) {
     });
 
   eventStream.next({ eventType: GameEvents.gameCreated, gameId: gameState.id, playerId });
-  gameState = joinPlayer({ gameState, playerId }).gameState;
+//  gameState = joinPlayer({ gameState, playerId }).gameState;
   raiseGameStatusChanged({ gameState });
   return { gameState };
 }

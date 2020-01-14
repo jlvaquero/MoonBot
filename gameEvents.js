@@ -10,6 +10,11 @@ const gameAlreadyCreated = Symbol.for("GAME_ALREADY_CREATED");
 const gameStatusConsulted = Symbol.for("GAME_STAUTS_CONSULTED");
 const gameStatusChanged = Symbol.for("GAME_STAUTS_CHANGED");
 
+const gameNumBitsMissed = Symbol.for("GAME_NUMBITS_MISSED");
+const gameNumBugsMissed = Symbol.for("GAME_NUMBUGS_MISSED");
+const gameMaxEnergyMissed = Symbol.for("GAME_MAXENERGY_MISSED");
+const gameUseEventsMissed = Symbol.for("GAME_USEREVENTS_MISSED");
+
 const playerAlreadyJoined = Symbol.for("PLAYER_ALREADY_JOINED");
 const playerJoined = Symbol.for("PLAYER_JOINED");
 const playerNotJoined = Symbol.for("PLAYER_NOT_JOINED");
@@ -33,6 +38,11 @@ module.exports.gameAlreadyStarted = gameAlreadyStarted;
 module.exports.gameAlreadyCreated = gameAlreadyCreated;
 module.exports.gameStatusConsulted = gameStatusConsulted;
 module.exports.gameStatusChanged = gameStatusChanged;
+
+module.exports.gameNumBitsMissed = gameNumBitsMissed;
+module.exports.gameNumBugsMissed = gameNumBugsMissed;
+module.exports.gameMaxEnergyMissed = gameMaxEnergyMissed;
+module.exports.gameUseEventsMissed = gameUseEventsMissed;
 
 module.exports.playerAlreadyJoined = playerAlreadyJoined;
 module.exports.playerJoined = playerJoined;

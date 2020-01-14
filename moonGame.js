@@ -25,7 +25,7 @@ function Game(store) {
   const gameAPI = {
     EventStream: eventStream,
 
-    async CreateGame(gameId, numBits, playerId) {
+    async CreateGame(gameId, playerId, numBits, numBugs, maxEnergy, useEvents ) {
 
       let gameState = await store.get(gameId);
       if (gameState) {
@@ -33,7 +33,24 @@ function Game(store) {
         return null;
       }
 
-      gameState = StateManager.CreateNewGameState({ gameId, playerId, numBits }).gameState;
+      if (!numBits) {
+          eventStream.next({ eventType: GameEvents.gameNumBitsMissed, gameId: gameId, playerId });
+          return null;
+      }
+      if (!numBugs) {
+        eventStream.next({ eventType: GameEvents.gameNumBugsMissed, gameId: gameId, playerId, numBits });
+        return null;
+      }
+      if (!maxEnergy) {
+        eventStream.next({ eventType: GameEvents.gameMaxEnergyMissed, gameId: gameId, playerId, numBits, numBugs });
+        return null;
+      }
+      if (!useEvents) {
+        eventStream.next({ eventType: GameEvents.gameUseEventsMissed, gameId: gameId, playerId, numBits, numBugs, maxEnergy });
+        return null;
+      }
+
+      gameState = StateManager.CreateNewGameState({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }).gameState;
       return gameState;
     },
 

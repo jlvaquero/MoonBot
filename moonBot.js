@@ -1,7 +1,9 @@
 ﻿const { telegramEventMessages } = require('./eventMessages');
 const { OperationCode } = require('./gameRules');
+const GameEvents = require('./gameEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
+const { filter } = require('rxjs/operators');
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -40,15 +42,85 @@ const FakeStore = {
 const Game = require('./moonGame')(FakeStore);
 const eventStream = Game.EventStream;
 
-eventStream.subscribe({
+const numBitsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameNumBitsMissed)));
+const numBugsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameNumBugsMissed)));
+const maxEnergyMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameMaxEnergyMissed)));
+const useEventsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameUseEventsMissed)));
+const restOfEvents = eventStream.pipe(
+  filter(
+    event =>
+      event.eventType !== GameEvents.gameNumBitsMissed &&
+      event.eventType !== GameEvents.gameNumBugsMissed &&
+      event.eventType !== GameEvents.gameMaxEnergyMissed &&
+      event.eventType !== GameEvents.gameUseEventsMissed 
+));
+
+numBitsMissedEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], numBitsKeyboard);
+  }
+});
+
+numBugsMissedEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], numBugsKeyboard(event.numBits));
+  }
+});
+
+maxEnergyMissedEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], maxEnergyKeyboard(event.numBits, event.numBugs));
+  }
+});
+
+useEventsMissedEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
+  }
+});
+
+restOfEvents.subscribe({
   next(event) {
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
   }
 });
 
+const numBitsKeyboard = {
+  inline_keyboard: [
+    [{ text: "4", callback_data: "4" }, { text: "5", callback_data: "5" }, { text: "6", callback_data: "6" }]
+  ]
+};
+
+function numBugsKeyboard(numBits) {
+  return {
+    inline_keyboard: [
+      [{ text: "0", callback_data: `${numBits} 0` }, { text: "1", callback_data: `${numBits} 1` }, { text: "2", callback_data: `${numBits} 2` }]
+    ]
+  };
+}
+
+function maxEnergyKeyboard(numBits, numBugs) {
+  return {
+    inline_keyboard: [
+      [{ text: "3", callback_data: `${numBits} ${numBugs} 3` }, { text: "2.5", callback_data: `${numBits} ${numBugs} 2.5` }, { text: "2", callback_data: `${numBits} ${numBugs} 2` }, { text: "1.5", callback_data: `${numBits} ${numBugs} 1.5` }]
+    ]
+  };
+}
+
+function useEventsKeyboard(numBits, numBugs, maxEnergy) {
+  return {
+    inline_keyboard: [
+      [{ text: "Yes", callback_data: `${numBits} ${numBugs} ${maxEnergy} 1` }, { text: "No", callback_data: `${numBits} ${numBugs} ${maxEnergy} 0` }]
+    ]
+  };
+}
+
 bot.onText(/^\/start$/, InitConversationRequest);
-bot.onText(/^\/creategame$/, CreateDefaultGameRequest);
-bot.onText(/^\/creategame ([4-6])$/, CreateGameRequest);
+bot.onText(/^\/creategame$/, CreateGameRequest);
+//bot.onText(/^\/creategame ([4-6])$/, CreateGameRequest);
+//bot.onText(/^\/creategame ([4-6]) ([0-2])$/, CreateGameRequest);
+//bot.onText(/^\/creategame ([4-6]) ([0-2]) (3|2\.5|2|1\.5)$/, CreateGameRequest);
+//bot.onText(/^\/creategame ([4-6]) ([0-2]) (3|2\.5|2|1\.5) ([0-1])$/, CreateGameRequest);
 bot.onText(/^\/joingame$/, JoinGameRequest);
 bot.onText(/^\/leavegame$/, LeaveGameRequest);
 bot.onText(/^\/startgame$/, StartGameRequest);
@@ -67,18 +139,27 @@ bot.onText(/^\/not ([A-D]|[a-d])$/, NotRequest);
 bot.onText(/^\/or ([A-D]|[a-d]) ([A-D]|[a-d])$/, OrRequest);
 bot.onText(/^\/and ([A-D]|[a-d]) ([A-D]|[a-d])$/, AndRequest);
 bot.onText(/^\/xor ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
-
+bot.on('callback_query', steppedCreateGameRequest);
 
 async function InitConversationRequest(msg) {
   bot.sendMessage(msg.chat.id, welcome_message(msg));
 }
 
-async function CreateDefaultGameRequest(msg) {
-  await Game.CreateGame(msg.chat.id, 4, msg.from.username);
+async function CreateGameRequest(msg) {
+  await Game.CreateGame(msg.chat.id, msg.from.username);
 }
 
-async function CreateGameRequest(msg, match) {
-  await Game.CreateGame(msg.chat.id, match[1], msg.from.username);
+async function steppedCreateGameRequest(callbackQuery) {
+
+  let args = new Array();
+
+  args.push(callbackQuery.message.chat.id);
+  args.push(callbackQuery.message.from.username);
+  args = args.concat(callbackQuery.data.split(" ")); //parse data to get an array from "numBits numBugs maxEnergy useEvents" string
+
+  await Game.CreateGame.apply(Game, args);
+
+  bot.answerCallbackQuery(callbackQuery.id);
 }
 
 async function JoinGameRequest(msg) {
@@ -211,9 +292,9 @@ $> man\`\`\` /operations`;
 
 }
 
-function sendMessage(playerId, chatId, message) {
+function sendMessage(playerId, chatId, message, keyboard) {
   if (!message) { return Promise.resolve(); }
-  return bot.sendMessage(chatId, sprintf(message, playerId), { parse_mode: "Markdown" });
+  return bot.sendMessage(chatId, sprintf(message, playerId), { parse_mode: "Markdown", reply_markup: keyboard });
 }
 
 async function sendGameStatus(playerId, chatId, gameState) {
