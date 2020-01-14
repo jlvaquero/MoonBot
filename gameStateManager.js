@@ -236,8 +236,7 @@ function leavePlayer({ gameState, playerId }) {
   const playerLeaving = playerIsNot(playerId);
 
   const playerPosition = () => {
-    const position = gameState.playerList.findIndex(ofPlayerLeaving);
-    return position ? position : gameState.playerTurn;
+    return gameState.playerList.findIndex(ofPlayerLeaving);
   };
   const nexPlayerTurn = () => (playerPosition() < gameState.playerTurn) ? gameState.playerTurn - 1 : gameState.playerTurn;
 
