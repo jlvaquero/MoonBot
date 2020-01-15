@@ -25,6 +25,7 @@ const telegramEventMessages = {
   [GameEvents.notPlayerTurn]: "It is not your turn %s.",
 
   [GameEvents.turnEnded]: "\u{1F468}\u{200D}\u{1F680} %s ends turn.",
+  [GameEvents.roundFinished]: "New round has been started. Objetive queue increased.",
   [GameEvents.notEnoughEnergy]: "%s. You have not enough \u{1F50B} for that operation.",
   [GameEvents.operationApplied]: "Register operation applied.",
   [GameEvents.objetiveAccomplished]: "\u{2705} Great %s! You have accomplished one objetive!"

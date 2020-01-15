@@ -1,7 +1,6 @@
 const utils = require('./utils');
 const { Rules } = require('./gameRules');
 
-
 function ObjetivesGenerator(numBits) {
 
   const maxValue = Math.pow(2, numBits) - 1;

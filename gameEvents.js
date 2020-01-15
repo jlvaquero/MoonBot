@@ -23,6 +23,7 @@ const noPlayersLeft = Symbol.for("NO_PLAYERS_LEFT");
 const notPlayerTurn = Symbol.for("NOT_PLAYER_TURN");
 
 const turnEnded = Symbol.for("TURN_ENDED");
+const roundFinished = Symbol.for("ROUND_FINISHED");
 const notEnoughEnergy = Symbol.for("NOT_ENOUGH_ENERGY");
 const operationApplied = Symbol.for("OPERATION_APPLIED");
 const objetiveAccomplished = Symbol.for("OBJETIVE_ACCOMPLISHED");
@@ -52,6 +53,7 @@ module.exports.noPlayersLeft = noPlayersLeft;
 module.exports.notPlayerTurn = notPlayerTurn;
 
 module.exports.turnEnded = turnEnded;
+module.exports.roundFinished = roundFinished;
 module.exports.notEnoughEnergy = notEnoughEnergy;
 module.exports.operationApplied = operationApplied;
 module.exports.objetiveAccomplished = objetiveAccomplished;

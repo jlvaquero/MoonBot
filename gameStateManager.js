@@ -272,18 +272,19 @@ function endTurn({ gameState, playerId }) {
   const endRound = () => Rules.LastPlayerPlaying(gameState);
   const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.maxEnergy; return playerState; });
 
-  if (endRound()) {
+  eventStream.next({ eventType: GameEvents.turnEnded, gameId: gameState.id, playerId });
+
+  if (!endRound()) {
+    gameState.playerTurn += 1;
+  }
+  else {
     gameState.playerTurn = 0;
     gameState.unresolved += 1;
     gameState.playerList = resetEnergy();
-  }
-  else {
-    gameState.playerTurn += 1;
+    eventStream.next({ eventType: GameEvents.roundFinished, gameId: gameState.id, playerId });
   }
 
   if (Rules.NoUnresolvedLeft(gameState)) gameState.unresolved = 1;
-
-  eventStream.next({ eventType: GameEvents.turnEnded, gameId: gameState.id, playerId });
   return { gameState };
 }
 
