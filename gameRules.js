@@ -39,7 +39,8 @@ const Rules = {
       return defaultEnergy; //fallback value
     }
     return energy;
-  }
+  },
+  MaxNumObjetives: 12
 };
 
 const OperationCode = {

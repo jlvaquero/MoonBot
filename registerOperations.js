@@ -31,13 +31,13 @@ function Operations(numBits) {
     },
     ror(value) {
       if (value === 0 || value === maxValue) return value;
-      let newValue = (value >> 1);
+      const newValue = (value >> 1);
       if ((value & 0x1) === 0x1) return (newValue | halfValue);
       return newValue;
     },
     rol(value) {
       if (value === 0 || value === maxValue) return value;
-      let newValue = (value << 1);
+      const newValue = (value << 1);
       if (value < halfValue) return newValue;
       return ((newValue & maxValue) | 0x1);
     }

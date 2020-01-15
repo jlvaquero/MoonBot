@@ -7,10 +7,12 @@ const { pipe } = require('./utils');
 //create the event stream
 const eventStream = new Subject();
 
-//stop piping functions on null and return {gameState :null} as fallback value
+//stop piping functions on null output and return {gameState :null} as fallback value
 const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null };}); 
 
-//define the behavior of the operations piping stand alone functions
+/* define the behavior of the operations piping stand alone functions
+   maintenance here is a piece of cake*/
+ 
 const joinPlayerPublicApi = pipeUntilNull(
   checkGameWasStarted,
   checkAlreadyJoined,
@@ -67,7 +69,7 @@ const gameStateManager = {
 
 };
 
-//stand alone functions with behaviour. every one has a single responsibility for state checks and raise one event
+//stand alone functions with behaviour. every one has a single responsibility for state checks and raise its related event
 function checkGameWasStarted({ gameState, playerId }) {
   if (gameState.started) {
     eventStream.next({ eventType: GameEvents.gameAlreadyStarted, gameId: gameState.id, playerId });
