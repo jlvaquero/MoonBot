@@ -30,13 +30,13 @@ function Clamp(num, min, max) {
   return Math.min(Math.max(num, min), max);
 }
 
-function pipe(until, onUntilValue, ...fns) {
+function pipe(until, fallback, ...fns) {
 
   return (input) => {
 
     for (fnc of fns) {
       temp = fnc(input);
-      if (until(temp)) return onUntilValue;
+      if (until(temp)) return fallback(temp);
       input = Object.assign(input, temp); 
     }
     return input;

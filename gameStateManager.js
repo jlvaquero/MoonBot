@@ -4,10 +4,13 @@ const GameEvents = require('./gameEvents');
 const { Subject } = require('rxjs');
 const { pipe } = require('./utils');
 
+//create the event stream
 const eventStream = new Subject();
 
-const pipeUntilNull = pipe.bind(undefined, (input) => input === null, { gameState: null }); //stop piping on null and return {gameState :null}
+//stop piping functions on null and return {gameState :null} as fallback value
+const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null };}); 
 
+//define the behavior of the operations piping stand alone functions
 const joinPlayerPublicApi = pipeUntilNull(
   checkGameWasStarted,
   checkAlreadyJoined,
@@ -50,6 +53,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
   raiseGameStatusChanged
 );
 
+//expose the piped functions as the state manager public api
 const gameStateManager = {
 
   EventStream: eventStream,
@@ -63,6 +67,7 @@ const gameStateManager = {
 
 };
 
+//stand alone functions with behaviour. every one has a single responsibility for state checks and raise one event
 function checkGameWasStarted({ gameState, playerId }) {
   if (gameState.started) {
     eventStream.next({ eventType: GameEvents.gameAlreadyStarted, gameId: gameState.id, playerId });
@@ -80,9 +85,11 @@ function checkGameWasNotStarted({ gameState, playerId }) {
 }
 
 function checkAlreadyJoined({ gameState, playerId }) {
+  //provide context, clean and readable code by creating local functions with lambda expressions
   const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
 
-  if (alreadyJoined()) {
+  //input parameters captured in the lambda expression
+  if (alreadyJoined()) { 
     eventStream.next({ eventType: GameEvents.playerAlreadyJoined, gameId: gameState.id, playerId });
     return null;
   }
@@ -190,11 +197,11 @@ function raiseGameStatusChanged({ gameState }) {
   return { gameState };
 }
 
-function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs, maxEnergy and events
+function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs and events
 
-  var { registerValues, objetives } = ObjetivesGenerator(numBits);
+  const { registerValues, objetives } = ObjetivesGenerator(numBits, numBugs, useEvents);
 
-  let gameState = Object.assign(
+  const gameState = Object.assign(
     { ...newGameState },
     {
       id: gameId,
@@ -207,21 +214,23 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
           B: registerValues[0],
           C: registerValues[1],
           D: registerValues[2]
-        })
+        }),
+      rules: {
+        maxEnergy: Rules.KeepMaxEnergyInRange(maxEnergy)
+      }
     });
 
   eventStream.next({ eventType: GameEvents.gameCreated, gameId: gameState.id, playerId });
-//  gameState = joinPlayer({ gameState, playerId }).gameState;
   raiseGameStatusChanged({ gameState });
   return { gameState };
 }
 
 function joinPlayer({ gameState, playerId }) {
-  let playerState = Object.assign(
-    { ...newPlayerState },
-    {
-      name: playerId
-    });
+
+  const playerState = {
+      name: playerId,
+      energy: gameState.rules.maxEnergy
+    };
 
   gameState.playerList.push(playerState);
   eventStream.next({ eventType: GameEvents.playerJoined, gameId: gameState.id, playerId });
@@ -258,7 +267,7 @@ function startGame({ gameState, playerId }) {
 function endTurn({ gameState, playerId }) {
 
   const endRound = () => Rules.LastPlayerPlaying(gameState);
-  const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = Rules.MaxEnergy; return playerState; });
+  const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.MaxEnergy; return playerState; });
 
   if (endRound()) {
     gameState.playerTurn = 0;

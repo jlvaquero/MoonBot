@@ -4,6 +4,7 @@ const GameEvents = require('./gameEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
 const { filter } = require('rxjs/operators');
+const keyBoards = require('./telegramKeyboard');
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -39,13 +40,18 @@ const FakeStore = {
   }
 };
 
+
 const Game = require('./moonGame')(FakeStore);
+
+/*
+ * Obtain game event stream and subscribe for behaviour
+ */
 const eventStream = Game.EventStream;
 
-const numBitsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameNumBitsMissed)));
-const numBugsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameNumBugsMissed)));
-const maxEnergyMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameMaxEnergyMissed)));
-const useEventsMissedEvents = eventStream.pipe(filter(event => (event.eventType === GameEvents.gameUseEventsMissed)));
+const numBitsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameNumBitsMissed));
+const numBugsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameNumBugsMissed));
+const maxEnergyMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameMaxEnergyMissed));
+const useEventsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameUseEventsMissed));
 const restOfEvents = eventStream.pipe(
   filter(
     event =>
@@ -55,72 +61,41 @@ const restOfEvents = eventStream.pipe(
       event.eventType !== GameEvents.gameUseEventsMissed 
 ));
 
+//on event send inlinekeyboard asking for num of bits 
 numBitsMissedEvents.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], numBitsKeyboard);
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.numBitsKeyboard());
   }
 });
-
+//on event send inlinekeyboard asking for num of bugs
 numBugsMissedEvents.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], numBugsKeyboard(event.numBits));
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.numBugsKeyboard(event.numBits));
   }
 });
-
+//on event send inlinekeyboard asking for max energy value
 maxEnergyMissedEvents.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], maxEnergyKeyboard(event.numBits, event.numBugs));
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.maxEnergyKeyboard(event.numBits, event.numBugs));
   }
 });
-
+//on event send inlinekeyboard asking for use game events or not
 useEventsMissedEvents.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
   }
 });
-
+//on any other event send the message configured
 restOfEvents.subscribe({
   next(event) {
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
   }
 });
 
-const numBitsKeyboard = {
-  inline_keyboard: [
-    [{ text: "4", callback_data: "4" }, { text: "5", callback_data: "5" }, { text: "6", callback_data: "6" }]
-  ]
-};
 
-function numBugsKeyboard(numBits) {
-  return {
-    inline_keyboard: [
-      [{ text: "0", callback_data: `${numBits} 0` }, { text: "1", callback_data: `${numBits} 1` }, { text: "2", callback_data: `${numBits} 2` }]
-    ]
-  };
-}
-
-function maxEnergyKeyboard(numBits, numBugs) {
-  return {
-    inline_keyboard: [
-      [{ text: "3", callback_data: `${numBits} ${numBugs} 3` }, { text: "2.5", callback_data: `${numBits} ${numBugs} 2.5` }, { text: "2", callback_data: `${numBits} ${numBugs} 2` }, { text: "1.5", callback_data: `${numBits} ${numBugs} 1.5` }]
-    ]
-  };
-}
-
-function useEventsKeyboard(numBits, numBugs, maxEnergy) {
-  return {
-    inline_keyboard: [
-      [{ text: "Yes", callback_data: `${numBits} ${numBugs} ${maxEnergy} 1` }, { text: "No", callback_data: `${numBits} ${numBugs} ${maxEnergy} 0` }]
-    ]
-  };
-}
-
+//configure bot behaviour with regexp
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateGameRequest);
-//bot.onText(/^\/creategame ([4-6])$/, CreateGameRequest);
-//bot.onText(/^\/creategame ([4-6]) ([0-2])$/, CreateGameRequest);
-//bot.onText(/^\/creategame ([4-6]) ([0-2]) (3|2\.5|2|1\.5)$/, CreateGameRequest);
-//bot.onText(/^\/creategame ([4-6]) ([0-2]) (3|2\.5|2|1\.5) ([0-1])$/, CreateGameRequest);
 bot.onText(/^\/joingame$/, JoinGameRequest);
 bot.onText(/^\/leavegame$/, LeaveGameRequest);
 bot.onText(/^\/startgame$/, StartGameRequest);
@@ -149,6 +124,7 @@ async function CreateGameRequest(msg) {
   await Game.CreateGame(msg.chat.id, msg.from.username);
 }
 
+//handle inline keyboard responses
 async function steppedCreateGameRequest(callbackQuery) {
 
   let args = new Array();
@@ -157,22 +133,22 @@ async function steppedCreateGameRequest(callbackQuery) {
   args.push(callbackQuery.message.from.username);
   args = args.concat(callbackQuery.data.split(" ")); //parse data to get an array from "numBits numBugs maxEnergy useEvents" string
 
-  await Game.CreateGame.apply(Game, args);
+  await Game.CreateGame.apply(Game, args); //will raise missed events if args is incomplete
 
-  bot.answerCallbackQuery(callbackQuery.id);
+  bot.answerCallbackQuery(callbackQuery.id); //just finish the callback; the job will be done on missed events subscriptions
 }
 
 async function JoinGameRequest(msg) {
-  await Game.JoinGame(msg.chat.id, msg.from.username);
+  await Game.JoinGame(msg.chat.id, msg.from.username); //will raise events
 }
 
 async function LeaveGameRequest(msg) {
-  await Game.LeaveGame(msg.chat.id, msg.from.username);
+  await Game.LeaveGame(msg.chat.id, msg.from.username); //will raise events
 }
 
 async function StartGameRequest(msg) {
-  const gameState = await Game.StartGame(msg.chat.id, msg.from.username);
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  const gameState = await Game.StartGame(msg.chat.id, msg.from.username); //will raise events
+  await sendGameStatus(msg.from.username, msg.chat.id, gameState); //after handle all events, send game status 
 }
 
 async function StatusGameRequest(msg) {
@@ -201,7 +177,8 @@ function OperationListRequest(msg) {
   sendMessage(msg.from.username, msg.chat.id, opList_message);
 }
 
-const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc);
+//partial applied funcions to provide naming context makes this more readable 
+const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc); 
 const ExecuteDecOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.dec);
 const ExecuteRolOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.rol);
 const ExecuteRorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.ror);
@@ -212,7 +189,7 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase()); //use the partial applied funcion above
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
@@ -255,6 +232,7 @@ async function XorRequest(msg, match) {
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
+//gameState to telegram message
 function buildStatusMessage(gameState) {
 
   if (!gameState) { return null; }
@@ -292,15 +270,18 @@ $> man\`\`\` /operations`;
 
 }
 
+//send message if not null or undefined
 function sendMessage(playerId, chatId, message, keyboard) {
   if (!message) { return Promise.resolve(); }
   return bot.sendMessage(chatId, sprintf(message, playerId), { parse_mode: "Markdown", reply_markup: keyboard });
 }
 
+//send game status if not null or undefined
 async function sendGameStatus(playerId, chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
   return await sendMessage(playerId, chatId, buildStatusMessage(gameState));
 }
+
 
 function welcome_message(msg) {
   return `Hello ${msg.from.username}.
