@@ -35,7 +35,7 @@ const Rules = {
   LastPlayerPlaying(gameState) { return gameState.playerTurn === gameState.playerList.length - 1; },
   KeepMaxEnergyInRange(energy) {
     energy = Number(energy);
-    if (energy !== 1.5 && energy !== 2 && energy && 2.5 && energy !== 3) {
+    if (energy !== 1.5 && energy !== 2 && energy !== 2.5 && energy !== 3) {
       return defaultEnergy; //fallback value
     }
     return energy;

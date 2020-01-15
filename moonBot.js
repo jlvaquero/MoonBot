@@ -93,9 +93,10 @@ restOfEvents.subscribe({
 });
 
 
-//configure bot behaviour with regexp
+//configure bot behaviour with regExp
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateGameRequest);
+bot.on('callback_query', steppedCreateGameRequest);
 bot.onText(/^\/joingame$/, JoinGameRequest);
 bot.onText(/^\/leavegame$/, LeaveGameRequest);
 bot.onText(/^\/startgame$/, StartGameRequest);
@@ -114,7 +115,6 @@ bot.onText(/^\/not ([A-D]|[a-d])$/, NotRequest);
 bot.onText(/^\/or ([A-D]|[a-d]) ([A-D]|[a-d])$/, OrRequest);
 bot.onText(/^\/and ([A-D]|[a-d]) ([A-D]|[a-d])$/, AndRequest);
 bot.onText(/^\/xor ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
-bot.on('callback_query', steppedCreateGameRequest);
 
 async function InitConversationRequest(msg) {
   bot.sendMessage(msg.chat.id, welcome_message(msg));
@@ -130,7 +130,7 @@ async function steppedCreateGameRequest(callbackQuery) {
   let args = new Array();
 
   args.push(callbackQuery.message.chat.id);
-  args.push(callbackQuery.message.from.username);
+  args.push(callbackQuery.from.username);
   args = args.concat(callbackQuery.data.split(" ")); //parse data to get an array from "numBits numBugs maxEnergy useEvents" string
 
   await Game.CreateGame.apply(Game, args); //will raise missed events if args is incomplete

@@ -201,7 +201,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
 
   const { registerValues, objetives } = ObjetivesGenerator(numBits, numBugs, useEvents);
 
-  const gameState = Object.assign(
+  let gameState = Object.assign(
     { ...newGameState },
     {
       id: gameId,
@@ -221,6 +221,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
     });
 
   eventStream.next({ eventType: GameEvents.gameCreated, gameId: gameState.id, playerId });
+  gameState = joinPlayer({ gameState, playerId }).gameState;
   raiseGameStatusChanged({ gameState });
   return { gameState };
 }
@@ -267,7 +268,7 @@ function startGame({ gameState, playerId }) {
 function endTurn({ gameState, playerId }) {
 
   const endRound = () => Rules.LastPlayerPlaying(gameState);
-  const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.MaxEnergy; return playerState; });
+  const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.maxEnergy; return playerState; });
 
   if (endRound()) {
     gameState.playerTurn = 0;
@@ -302,10 +303,6 @@ const newGameState = {
 
 const newRegisterState = {
   A: 0
-};
-
-const newPlayerState = {
-  energy: Rules.MaxEnergy
 };
 
 module.exports = gameStateManager;

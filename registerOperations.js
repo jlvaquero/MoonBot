@@ -6,40 +6,40 @@ function Operations(numBits) {
 
   return {
 
-    inc: function (value) {
+    inc(value) {
       if (value === maxValue) return 0;
       return ++value;
     },
-    dec: function (value) {
+    dec(value) {
       if (value === 0) return maxValue;
       return --value;
     },
-    mov: function (_, value2 ) {
+    mov(_, value2 ) {
       return value2;
     },
-    not: function (value) {
+    not(value) {
       return maxValue - value;
     },
-    or: function (value1, value2) {
+    or(value1, value2) {
       return value1 | value2;
     },
-    and: function (value1, value2) {
+    and(value1, value2) {
       return value1 & value2;
     },
-    xor: function (value1, value2) {
+    xor(value1, value2) {
       return value1 ^ value2;
     },
-    ror: function (value) {
+    ror(value) {
       if (value === 0 || value === maxValue) return value;
       let newValue = (value >> 1);
       if ((value & 0x1) === 0x1) return (newValue | halfValue);
       return newValue;
     },
-    rol: function (value) {
+    rol(value) {
       if (value === 0 || value === maxValue) return value;
       let newValue = (value << 1);
       if (value < halfValue) return newValue;
-      return ((newValue - 0x10) | 0x1);
+      return ((newValue & maxValue) | 0x1);
     }
   };
 }
