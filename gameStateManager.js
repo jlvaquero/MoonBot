@@ -52,6 +52,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
   checkObjetiveAccomplished,
   checkGameWon,
   checkShouldEndTurn,
+  checkGameLost,
   raiseGameStatusChanged
 );
 
