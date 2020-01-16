@@ -1,10 +1,11 @@
 ﻿const { telegramEventMessages } = require('./eventMessages');
 const { OperationCode } = require('./gameRules');
-const GameEvents = require('./gameEvents');
+const EngineEvents = require('./engineEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
 const { filter } = require('rxjs/operators');
 const keyBoards = require('./telegramKeyboard');
+const { Rules } = require('./gameRules.js');
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -48,17 +49,17 @@ const Game = require('./moonGame')(FakeStore);
  */
 const eventStream = Game.EventStream;
 
-const numBitsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameNumBitsMissed));
-const numBugsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameNumBugsMissed));
-const maxEnergyMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameMaxEnergyMissed));
-const useEventsMissedEvents = eventStream.pipe(filter(event => event.eventType === GameEvents.gameUseEventsMissed));
+const numBitsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNumBitsMissed));
+const numBugsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNumBugsMissed));
+const maxEnergyMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameMaxEnergyMissed));
+const useEventsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameUseEventsMissed));
 const restOfEvents = eventStream.pipe(
   filter(
     event =>
-      event.eventType !== GameEvents.gameNumBitsMissed &&
-      event.eventType !== GameEvents.gameNumBugsMissed &&
-      event.eventType !== GameEvents.gameMaxEnergyMissed &&
-      event.eventType !== GameEvents.gameUseEventsMissed 
+      event.eventType !== EngineEvents.gameNumBitsMissed &&
+      event.eventType !== EngineEvents.gameNumBugsMissed &&
+      event.eventType !== EngineEvents.gameMaxEnergyMissed &&
+      event.eventType !== EngineEvents.gameUseEventsMissed 
 ));
 
 //on event send inlinekeyboard asking for num of bits 
@@ -87,8 +88,8 @@ useEventsMissedEvents.subscribe({
 });
 //on any other event send the message configured
 restOfEvents.subscribe({
-  next(event) {
-    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
+  async next(event) {
+    return await sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
   }
 });
 
@@ -239,13 +240,14 @@ function buildStatusMessage(gameState) {
 
   const playerTurn = () => gameState.playerList[gameState.playerTurn].name;
   const eneryLeft = () => gameState.playerList[gameState.playerTurn].energy;
-  const currentObjetive = () => gameState.objetives[gameState.objetives.length - 1].toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const currentObjetive = () => gameState.currentObjetive.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const registerA = () => gameState.registers.A.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const registerB = () => gameState.registers.B.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const registerC = () => gameState.registers.C.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const registerD = () => gameState.registers.D.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const objetivesLeft = () => gameState.objetives.length;
   const unresolved = () => gameState.unresolved;
+  const maxUnresolved = () => Rules.MaxUnresolvedValue - gameState.bugsFound;
 
   return `\`\`\`
 \u{1F5A5}
@@ -264,8 +266,9 @@ C: ${registerC()}
 D: ${registerD()}
 -----------------
 
-$> Unresolved objetives: ${unresolved()}
-$> Objetives left: ${objetivesLeft()}
+$> \u{1F41E} found: ${gameState.bugsFound}
+$> Objetive slot: ${unresolved()}/${maxUnresolved()}
+$> Objetives in queue: ${objetivesLeft()}
 $> man\`\`\` /operations`;
 
 }

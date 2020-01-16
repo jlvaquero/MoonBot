@@ -1,7 +1,7 @@
 const StateManager = require('./gameStateManager');
 const RegisterOperations = require('./registerOperations');
 const { Rules } = require('./gameRules');
-const GameEvents = require('./gameEvents');
+const EngineEvents = require('./engineEvents');
 const { filter } = require('rxjs/operators');
 
 function Game(store) {
@@ -13,9 +13,9 @@ function Game(store) {
   const cancellGameEvents = eventStream.pipe(
     filter(
       event =>
-        event.eventType === GameEvents.gameLost ||
-        event.eventType === GameEvents.gameWon ||
-        event.eventType === GameEvents.noPlayersLeft
+        event.eventType === EngineEvents.gameLost ||
+        event.eventType === EngineEvents.gameWon ||
+        event.eventType === EngineEvents.noPlayersLeft
     ));
 
   cancellGameEvents.subscribe({
@@ -25,7 +25,7 @@ function Game(store) {
   });
 
   //react on game state changed; just store the new state
-  const stateChangedEvent = eventStream.pipe(filter(event => event.eventType === GameEvents.gameStatusChanged));
+  const stateChangedEvent = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameStatusChanged));
   stateChangedEvent.subscribe({
     async next(event) {
       await store.set(event.gameState.id, event.gameState);
@@ -40,25 +40,25 @@ function Game(store) {
       //do not let create a new game if one already existe
       let gameState = await store.get(gameId);
       if (gameState) {
-        eventStream.next({ eventType: GameEvents.gameAlreadyCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameAlreadyCreated, gameId: gameId, playerId });
         return null;
       }
 
       //incomplete request
       if (!numBits) {
-          eventStream.next({ eventType: GameEvents.gameNumBitsMissed, gameId: gameId, playerId }); //notify it by event
+          eventStream.next({ eventType: EngineEvents.gameNumBitsMissed, gameId: gameId, playerId }); //notify it by event
           return null;
       }
       if (!numBugs) {
-        eventStream.next({ eventType: GameEvents.gameNumBugsMissed, gameId: gameId, playerId, numBits });
+        eventStream.next({ eventType: EngineEvents.gameNumBugsMissed, gameId: gameId, playerId, numBits });
         return null;
       }
       if (!maxEnergy) {
-        eventStream.next({ eventType: GameEvents.gameMaxEnergyMissed, gameId: gameId, playerId, numBits, numBugs });
+        eventStream.next({ eventType: EngineEvents.gameMaxEnergyMissed, gameId: gameId, playerId, numBits, numBugs });
         return null;
       }
       if (!useEvents) {
-        eventStream.next({ eventType: GameEvents.gameUseEventsMissed, gameId: gameId, playerId, numBits, numBugs, maxEnergy });
+        eventStream.next({ eventType: EngineEvents.gameUseEventsMissed, gameId: gameId, playerId, numBits, numBugs, maxEnergy });
         return null;
       }
 
@@ -71,7 +71,7 @@ function Game(store) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 
@@ -83,7 +83,7 @@ function Game(store) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 
@@ -95,7 +95,7 @@ function Game(store) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 
@@ -107,11 +107,11 @@ function Game(store) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 
-      eventStream.next({ eventType: GameEvents.gameStatusConsulted, gameId: gameId, playerId });
+      eventStream.next({ eventType: EngineEvents.gameStatusConsulted, gameId: gameId, playerId });
       return gameState;
     },
 
@@ -119,7 +119,7 @@ function Game(store) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 
@@ -129,14 +129,14 @@ function Game(store) {
 
     async CancelGame(gameId, playerId) {
       await store.del(gameId);
-      eventStream.next({ eventType: GameEvents.gameCancelled, gameId: gameId, playerId });
+      eventStream.next({ eventType: EngineEvents.gameCancelled, gameId: gameId, playerId });
     },
 
     async ExecuteBitOperation(operation, gameId, playerId, cpu_reg1, cpu_reg2) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
-        eventStream.next({ eventType: GameEvents.gameNotCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
         return null;
       }
 

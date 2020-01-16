@@ -27,6 +27,8 @@ const roundFinished = Symbol.for("ROUND_FINISHED");
 const notEnoughEnergy = Symbol.for("NOT_ENOUGH_ENERGY");
 const operationApplied = Symbol.for("OPERATION_APPLIED");
 const objetiveAccomplished = Symbol.for("OBJETIVE_ACCOMPLISHED");
+const bugFound = Symbol.for("BUG_FOUND");
+const gameEventFound = Symbol.for("GAME_EVENT_FOUND");
 
 module.exports.gameLost = gameLost;
 module.exports.gameWon = gameWon;
@@ -57,3 +59,5 @@ module.exports.roundFinished = roundFinished;
 module.exports.notEnoughEnergy = notEnoughEnergy;
 module.exports.operationApplied = operationApplied;
 module.exports.objetiveAccomplished = objetiveAccomplished;
+module.exports.bugFound = bugFound;
+module.exports.gameEventFound = gameEventFound;

@@ -1,6 +1,6 @@
 const ObjetivesGenerator = require('./objetives');
-const { Rules } = require('./gameRules');
-const GameEvents = require('./gameEvents');
+const { Rules, CardType } = require('./gameRules');
+const EngineEvents = require('./engineEvents');
 const { Subject } = require('rxjs');
 const { pipe } = require('./utils');
 
@@ -8,11 +8,9 @@ const { pipe } = require('./utils');
 const eventStream = new Subject();
 
 //stop piping functions on null output and return {gameState :null} as fallback value
-const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null };}); 
-
+const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null }; });
 /* define the behavior of the operations piping stand alone functions
    maintenance here is a piece of cake*/
- 
 const joinPlayerPublicApi = pipeUntilNull(
   checkGameWasStarted,
   checkAlreadyJoined,
@@ -70,139 +68,192 @@ const gameStateManager = {
 
 };
 
-//stand alone functions with behaviour. every one has a single responsibility for state checks and raise its related event
+/*
+ * stand alone functions with behaviour. every one has a single responsibility for state checks and raise its related event
+ */
+
+//notfy the game was started to not allow start again or join players
 function checkGameWasStarted({ gameState, playerId }) {
   if (gameState.started) {
-    eventStream.next({ eventType: GameEvents.gameAlreadyStarted, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.gameAlreadyStarted, gameState, playerId });
     return null;
   }
   return { gameState };
 }
-
+//notyfy the game was not started to not allow endturn or bit operations
 function checkGameWasNotStarted({ gameState, playerId }) {
   if (!gameState.started) {
-    eventStream.next({ eventType: GameEvents.gameNotStarted, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.gameNotStarted, gameState, playerId });
     return null;
   }
   return { gameState };
 }
 
+//check the player is already joined to not allow join again
 function checkAlreadyJoined({ gameState, playerId }) {
   //provide context, clean and readable code by creating local functions with lambda expressions
   const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
 
   //input parameters captured in the lambda expression
-  if (alreadyJoined()) { 
-    eventStream.next({ eventType: GameEvents.playerAlreadyJoined, gameId: gameState.id, playerId });
+  if (alreadyJoined()) {
+    eventStream.next({ eventType: EngineEvents.playerAlreadyJoined, gameState, playerId });
     return null;
   }
   return { gameState };
 }
 
+//check player not joined to just allow join
 function checkNotJoined({ gameState, playerId }) {
   const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
 
   if (!alreadyJoined()) {
-    eventStream.next({ eventType: GameEvents.playerNotJoined, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.playerNotJoined, gameState, playerId });
     return null;
   }
   return { gameState };
 }
-
+//check if last player left the game; notyfy it to cancell the game
 function checkNoPlayersLeft({ gameState, playerId }) {
   const noPlayers = () => Rules.NoPlayersLeft(gameState);
 
   if (noPlayers()) {
-    eventStream.next({ eventType: GameEvents.noPlayersLeft, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.noPlayersLeft, gameState, playerId });
     return null;
   }
 
   return { gameState };
 }
+
+//check if its player turn to accept bit operations and end turn command
 function checkIsNotPlayerTurn({ gameState, playerId }) {
   const isCurrentPlayerTurn = () => Rules.IsPlayerTurn(gameState, playerId);
 
   if (!isCurrentPlayerTurn()) {
-    eventStream.next({ eventType: GameEvents.notPlayerTurn, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.notPlayerTurn, gameState, playerId });
     return null;
   }
 
   return { gameState };
 }
+
+//notyfy game was lost to cancel it
 function checkGameLost({ gameState, playerId }) {
   const loose = () => Rules.MaxUnresolvedReached(gameState);
 
   if (loose()) {
-    eventStream.next({ eventType: GameEvents.gameLost, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.gameLost, gameState, playerId });
     return null;
   }
 
   return { gameState };
 }
 
+//chek if player has energy to perform the requested bit operation
 function checkNotEnoughEnergy({ gameState, playerId, cost }) {
   const enoughEnergy = () => Rules.CurrentPlayer(gameState).energy >= cost;
 
   if (!enoughEnergy()) {
-    eventStream.next({ eventType: GameEvents.notEnoughEnergy, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.notEnoughEnergy, gameState, playerId });
     return null;
   }
 
   return { gameState };
 }
 
+//check if one objetive has benn accomplished and notify it
 function checkObjetiveAccomplished({ gameState, playerId }) {
+
   const objetiveAccomplished = () => Rules.ObjetiveIsInRegA(gameState);
- 
+  const pipeAlways = pipe.bind(undefined, () => false, null); //pipe without stop condition
+
+  const objetiveAccomplisher = pipeAlways(
+    decreaseObjetiveSlot,
+    obtainNextObjetive
+  );
 
   if (objetiveAccomplished()) {
-    return accomplishObjetive({ gameState, playerId }); 
+    eventStream.next({ eventType: EngineEvents.objetiveAccomplished, gameState, playerId });
+    return objetiveAccomplisher({ gameState, playerId });
   }
 
   return { gameState };
 }
 
-function accomplishObjetive({ gameState, playerId }) {
+//modify the game state for accomplish a objetive
+function decreaseObjetiveSlot({ gameState }) {
 
   const unresolvedObjetivesLeft = () => gameState.unresolved - 1;
-  
-  gameState.objetives.pop();
-  gameState.unresolved = unresolvedObjetivesLeft();
 
-  eventStream.next({ eventType: GameEvents.objetiveAccomplished, gameId: gameState.id, playerId });
-  
+  gameState.unresolved = unresolvedObjetivesLeft();
   return { gameState };
 }
 
+//modify the game state for accomplish a objetive
+function obtainNextObjetive({ gameState, playerId }) {
+
+  let card = gameState.objetives.pop();
+  while (card && card.type !== CardType.Objetive) {
+    gameState = applyCardRules(gameState, card, playerId);
+    card = gameState.objetives.pop();
+  }
+
+  gameState.currentObjetive = card;
+
+  return { gameState };
+}
+
+function applyCardRules(gameState, card, playerId) {
+
+  gameState = card.applyRules(gameState);
+
+  switch (card.type) {
+    case CardType.Bug:
+      eventStream.next({ eventType: EngineEvents.bugFound, gameState, playerId });
+      break;
+    case CardType.Event:
+      eventStream.next({ eventType: EngineEvents.gameEventFound, gameEvent: card, gameState, playerId });
+      break;
+  }
+
+  return gameState;
+}
+
+//notyfy game was won to cancel it
 function checkGameWon({ gameState, playerId }) {
   const win = () => Rules.NoObjetivesLeft(gameState);
 
   if (win()) {
-    eventStream.next({ eventType: GameEvents.gameWon, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.gameWon, gameState, playerId });
     return null;
   }
 
   return { gameState };
 }
 
+//check if an automatic end turn should happend because playes has 0 energy or there is no unresolved objetives in unresolved queue
 function checkShouldEndTurn({ gameState, playerId }) {
-  const shouldEndTurn = () => Rules.NoEnergyLeft(gameState) || Rules.NoUnresolvedLeft(gameState);
+
+  const noUnresolvedLeft = Rules.NoUnresolvedLeft(gameState);
+  const shouldEndTurn = () => Rules.NoEnergyLeft(gameState) || noUnresolvedLeft;
 
   if (shouldEndTurn()) {
+    if (noUnresolvedLeft) { gameState.unresolved = 1; } //keep at least one unresolved until win
     return endTurn({ gameState, playerId });
   }
 
   return { gameState };
 }
 
-function raiseGameStatusChanged({ gameState }) {
-  eventStream.next({ eventType: GameEvents.gameStatusChanged, gameState });
+//notify the game state has changed
+function raiseGameStatusChanged({ gameState , playerId}) {
+  eventStream.next({ eventType: EngineEvents.gameStatusChanged, gameState, playerId });
   return { gameState };
 }
 
+//
 function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs and events
 
-  const { registerValues, objetives } = ObjetivesGenerator(numBits, numBugs, useEvents);
+  const { registerValues, objetives } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
 
   let gameState = Object.assign(
     { ...newGameState },
@@ -210,6 +261,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
       id: gameId,
       numBits: Rules.KeepNumBitsRange(numBits),
       playerList: new Array(),
+      currentObjetive: objetives.pop(),
       objetives: objetives,
       registers: Object.assign(
         { ...newRegisterState },
@@ -223,7 +275,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
       }
     });
 
-  eventStream.next({ eventType: GameEvents.gameCreated, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.gameCreated, gameState, playerId });
   gameState = joinPlayer({ gameState, playerId }).gameState;
   raiseGameStatusChanged({ gameState });
   return { gameState };
@@ -232,12 +284,12 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
 function joinPlayer({ gameState, playerId }) {
 
   const playerState = {
-      name: playerId,
-      energy: gameState.rules.maxEnergy
-    };
+    name: playerId,
+    energy: gameState.rules.maxEnergy
+  };
 
   gameState.playerList.push(playerState);
-  eventStream.next({ eventType: GameEvents.playerJoined, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.playerJoined, gameState, playerId });
   return { gameState };
 }
 
@@ -256,7 +308,7 @@ function leavePlayer({ gameState, playerId }) {
   gameState.playerList = gameState.playerList.filter(playerLeaving);
   gameState.playerTurn = nexPlayerTurn();
 
-  eventStream.next({ eventType: GameEvents.playerLeft, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.playerLeft, gameState, playerId });
 
   return { gameState };
 }
@@ -264,7 +316,7 @@ function leavePlayer({ gameState, playerId }) {
 function startGame({ gameState, playerId }) {
 
   gameState.started = true;
-  eventStream.next({ eventType: GameEvents.gameStarted, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.gameStarted, gameState, playerId });
   return { gameState };
 }
 
@@ -273,7 +325,7 @@ function endTurn({ gameState, playerId }) {
   const endRound = () => Rules.LastPlayerPlaying(gameState);
   const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.maxEnergy; return playerState; });
 
-  eventStream.next({ eventType: GameEvents.turnEnded, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.turnEnded, gameState, playerId });
 
   if (!endRound()) {
     gameState.playerTurn += 1;
@@ -282,10 +334,9 @@ function endTurn({ gameState, playerId }) {
     gameState.playerTurn = 0;
     gameState.unresolved += 1;
     gameState.playerList = resetEnergy();
-    eventStream.next({ eventType: GameEvents.roundFinished, gameId: gameState.id, playerId });
+    eventStream.next({ eventType: EngineEvents.roundFinished, gameState, playerId });
   }
 
-  if (Rules.NoUnresolvedLeft(gameState)) gameState.unresolved = 1;
   return { gameState };
 }
 
@@ -295,14 +346,15 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
   gameState.registers[cpu_reg1] = operation(gameState.registers[cpu_reg1], gameState.registers[cpu_reg2]);
   player().energy -= cost;
 
-  eventStream.next({ eventType: GameEvents.operationApplied, gameId: gameState.id, playerId });
+  eventStream.next({ eventType: EngineEvents.operationApplied, gameState, playerId });
   return { gameState };
 }
 
 const newGameState = {
   unresolved: 1,
   started: false,
-  playerTurn: 0
+  playerTurn: 0,
+  bugsFound: 0
 };
 
 const newRegisterState = {

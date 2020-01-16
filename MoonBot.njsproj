@@ -36,7 +36,7 @@
     <Compile Include="eventMessages.js">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="gameEvents.js">
+    <Compile Include="engineEvents.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="gameRules.js">
