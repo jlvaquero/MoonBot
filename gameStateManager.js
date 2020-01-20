@@ -46,6 +46,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
   checkGameWasNotStarted,
   checkIsNotPlayerTurn,
   checkNotEnoughEnergy,
+  checkRegisterLocked,
   executeBitOperation,
   checkObjetiveAccomplished,
   checkGameWon,
@@ -148,6 +149,18 @@ function checkGameLost({ gameState, playerId }) {
   return { gameState };
 }
 
+function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
+
+  const registerLocked = () => gameState.registers[cpu_reg1].locked || (cpu_reg2 ? gameState.registers[cpu_reg2].locked : false);
+
+  if (registerLocked()) {
+    entStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
+    return null;
+  }
+
+  return { gameState };
+}
+
 //chek if player has energy to perform the requested bit operation
 function checkNotEnoughEnergy({ gameState, playerId, cost }) {
   const enoughEnergy = () => Rules.CurrentPlayer(gameState).energy >= cost;
@@ -160,16 +173,17 @@ function checkNotEnoughEnergy({ gameState, playerId, cost }) {
   return { gameState };
 }
 
+const pipeAlways = pipe.bind(undefined, () => false, null); //pipe without stop condition
+const objetiveAccomplisher = pipeAlways(
+  decreaseObjetiveSlot,
+  obtainNextObjetive
+);
+
 //check if one objetive has benn accomplished and notify it
 function checkObjetiveAccomplished({ gameState, playerId }) {
 
   const objetiveAccomplished = () => Rules.ObjetiveIsInRegA(gameState);
-  const pipeAlways = pipe.bind(undefined, () => false, null); //pipe without stop condition
-
-  const objetiveAccomplisher = pipeAlways(
-    decreaseObjetiveSlot,
-    obtainNextObjetive
-  );
+  
 
   if (objetiveAccomplished()) {
     eventStream.next({ eventType: EngineEvents.objetiveAccomplished, gameState, playerId });
@@ -237,7 +251,6 @@ function checkShouldEndTurn({ gameState, playerId }) {
   const shouldEndTurn = () => Rules.NoEnergyLeft(gameState) || noUnresolvedLeft;
 
   if (shouldEndTurn()) {
-    if (noUnresolvedLeft) { gameState.unresolved = 1; } //keep at least one unresolved until win
     return endTurn({ gameState, playerId });
   }
 
@@ -253,7 +266,7 @@ function raiseGameStatusChanged({ gameState , playerId}) {
 //
 function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs and events
 
-  const { registerValues, objetives } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
+  const { registerValues, objetives, currentObjetive } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
 
   let gameState = Object.assign(
     { ...newGameState },
@@ -261,14 +274,14 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
       id: gameId,
       numBits: Rules.KeepNumBitsRange(numBits),
       playerList: new Array(),
-      currentObjetive: objetives.pop(),
+      currentObjetive: currentObjetive,
       objetives: objetives,
       registers: Object.assign(
         { ...newRegisterState },
         {
-          B: registerValues[0],
-          C: registerValues[1],
-          D: registerValues[2]
+          B: { value: registerValues[0], locked: false },
+          C: { value: registerValues[1], locked: false  },
+          D: { value: registerValues[2], locked: false  }
         }),
       rules: {
         maxEnergy: Rules.KeepMaxEnergyInRange(maxEnergy)
@@ -343,7 +356,7 @@ function endTurn({ gameState, playerId }) {
 function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, cpu_reg2 }) {
   const player = () => Rules.CurrentPlayer(gameState);
 
-  gameState.registers[cpu_reg1] = operation(gameState.registers[cpu_reg1], gameState.registers[cpu_reg2]);
+  gameState.registers[cpu_reg1].value = operation(gameState.registers[cpu_reg1].value, cpu_reg2 ? gameState.registers[cpu_reg2].value : cpu_reg2);
   player().energy -= cost;
 
   eventStream.next({ eventType: EngineEvents.operationApplied, gameState, playerId });
@@ -358,7 +371,7 @@ const newGameState = {
 };
 
 const newRegisterState = {
-  A: 0
+  A: { value: 0, locked: false }
 };
 
 module.exports = gameStateManager;

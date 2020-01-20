@@ -20,7 +20,7 @@ function Game(store) {
 
   cancellGameEvents.subscribe({
     async next(event) {
-      await gameAPI.CancelGame(event.gameId, event.playerId);
+      await gameAPI.CancelGame(event.gameState.id, event.playerId);
       }
   });
 
@@ -40,25 +40,25 @@ function Game(store) {
       //do not let create a new game if one already existe
       let gameState = await store.get(gameId);
       if (gameState) {
-        eventStream.next({ eventType: EngineEvents.gameAlreadyCreated, gameId: gameId, playerId });
+        eventStream.next({ eventType: EngineEvents.gameAlreadyCreated, gameState, playerId });
         return null;
       }
 
       //incomplete request
       if (!numBits) {
-          eventStream.next({ eventType: EngineEvents.gameNumBitsMissed, gameId: gameId, playerId }); //notify it by event
+          eventStream.next({ eventType: EngineEvents.gameNumBitsMissed, gameId, playerId }); //notify it by event
           return null;
       }
       if (!numBugs) {
-        eventStream.next({ eventType: EngineEvents.gameNumBugsMissed, gameId: gameId, playerId, numBits });
+        eventStream.next({ eventType: EngineEvents.gameNumBugsMissed, gameId, playerId, numBits });
         return null;
       }
       if (!maxEnergy) {
-        eventStream.next({ eventType: EngineEvents.gameMaxEnergyMissed, gameId: gameId, playerId, numBits, numBugs });
+        eventStream.next({ eventType: EngineEvents.gameMaxEnergyMissed, gameId, playerId, numBits, numBugs });
         return null;
       }
       if (!useEvents) {
-        eventStream.next({ eventType: EngineEvents.gameUseEventsMissed, gameId: gameId, playerId, numBits, numBugs, maxEnergy });
+        eventStream.next({ eventType: EngineEvents.gameUseEventsMissed, gameId, playerId, numBits, numBugs, maxEnergy });
         return null;
       }
 
@@ -129,7 +129,7 @@ function Game(store) {
 
     async CancelGame(gameId, playerId) {
       await store.del(gameId);
-      eventStream.next({ eventType: EngineEvents.gameCancelled, gameId: gameId, playerId });
+      eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId });
     },
 
     async ExecuteBitOperation(operation, gameId, playerId, cpu_reg1, cpu_reg2) {

@@ -1,4 +1,5 @@
 ﻿const EngineEvents = require('./engineEvents');
+const { GameEventType } = require('./gameRules');
 
 //pass status builder
 const telegramEventMessages = {
@@ -30,8 +31,19 @@ const telegramEventMessages = {
   [EngineEvents.operationApplied]: "Register operation applied.",
   [EngineEvents.objetiveAccomplished]: "\u{2705} Great %s! You have accomplished one objetive!",
   [EngineEvents.bugFound]: "Ops! You have found a \u{1F41E}. Maximun objetive slots decreased.",
-  [EngineEvents.gameEventFound]: "Something has changed the computer state." //TODO: generic message for all events
+
+ // [EngineEvents.gameEventFound]: "Something has changed the computer state.",
+  [GameEventType.ErrorB]: "Error on Register B. Register B has been disabled \u{274C} for R/W.",
+  [GameEventType.ErrorC]: "Error on Register C. Register C has been disabled \u{274C} for R/W.",
+  [GameEventType.ErrorD]: "Error on Register D. Register D has been disabled \u{274C} for R/W.",
+  [GameEventType.ResetA]: "Register A has been reset \u{1F17E}",
+  [GameEventType.ResetB]: "Register B has been reset \u{1F17E}",
+  [GameEventType.ResetC]: "Register C has been reset \u{1F17E}",
+  [GameEventType.ResetD]: "Register D has been reset \u{1F17E}",
+  [EngineEvents.registerLocked]: "Found error on target register. Operation aborted."
+
 };
+
 
 /*define other custom messages for other platforms if needed
 i.e.:

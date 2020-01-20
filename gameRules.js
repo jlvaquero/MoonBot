@@ -60,7 +60,7 @@ const Rules = {
   MaxUnresolvedReached(gameState) { return gameState.unresolved + gameState.bugsFound === this.MaxUnresolvedValue; },
   NoObjetivesLeft(gameState) { return gameState.objetives.length === 0 && !gameState.currentObjetive.value; },
   EnoughEnergyFor(gameState, operation) { return this.CurrentPlayer(gameState).energy >= this.OperationCost(operation); },
-  ObjetiveIsInRegA(gameState) { return gameState.registers.A === gameState.currentObjetive.value; },
+  ObjetiveIsInRegA(gameState) { return gameState.registers.A.value === gameState.currentObjetive.value; },
   NoEnergyLeft(gameState) { return this.CurrentPlayer(gameState).energy === 0; },
   NoUnresolvedLeft(gameState) { return gameState.unresolved === 0; },
   OperationCost(op) { return OperationCost[op]; },
@@ -80,12 +80,13 @@ const Rules = {
     gameState.bugsFound = +1;
     return gameState;
   },
-  ApplyReset(register, gameState) {
-    gameState.registers[register] = 0;
+  ApplyRegisterReset(register, gameState) {
+    gameState.registers[register].value = 0;
     return gameState;
   },
   ApplyRegisterError(register, gameState) {
-
+    gameState.registers[register].locked = true;
+    return gameState;
   },
   ApplyOperationError(gameState) {
   },
@@ -105,14 +106,14 @@ const GameCards = {
     type: CardType.Bug,
     applyRules: Rules.ApplyBug
   },
-  ResetA: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetA, applyRules: Rules.ApplyReset.bind(undefined, "A") }),
-  ResetB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetB, applyRules: Rules.ApplyReset.bind(undefined, "B") }),
-  ResetC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetC, applyRules: Rules.ApplyReset.bind(undefined, "C") }),
-  ResetD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetD, applyRules: Rules.ApplyReset.bind(undefined, "D") }),
+  ResetA: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetA, applyRules: Rules.ApplyRegisterReset.bind(undefined, "A") }),
+  ResetB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B") }),
+  ResetC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetC, applyRules: Rules.ApplyRegisterReset.bind(undefined, "C") }),
+  ResetD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetD, applyRules: Rules.ApplyRegisterReset.bind(undefined, "D") }),
   OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: (gameState) => { return gameState; } }), //TODO: think about how to apply the OK game event
-  ErrorB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "B") }),  //TODO: think about how to lock register
-  ErrorC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "C") }),
-  ErrorD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "D") }),
+  ErrorB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "B") }),
+  ErrorC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorC, applyRules: Rules.ApplyRegisterError.bind(undefined, "C") }),
+  ErrorD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorD, applyRules: Rules.ApplyRegisterError.bind(undefined, "D") }),
   ErrorROL: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorROL, applyRules: Rules.ApplyOperationError }), //TODO: think about how to lock the operation
   ErrorXOR: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorXOR, applyRules: Rules.ApplyOperationError }),
   ErrorNOT: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorNOT, applyRules: Rules.ApplyOperationError })
@@ -124,3 +125,4 @@ module.exports.Rules = Rules;
 module.exports.OperationCode = OperationCode;
 module.exports.CardType = CardType;
 module.exports.GameCards = GameCards;
+module.exports.GameEventType = GameEventType;

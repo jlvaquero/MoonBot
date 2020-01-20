@@ -3,7 +3,7 @@ const { OperationCode } = require('./gameRules');
 const EngineEvents = require('./engineEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
-const { filter } = require('rxjs/operators');
+const { filter, concatMap } = require('rxjs/operators');
 const keyBoards = require('./telegramKeyboard');
 const { Rules } = require('./gameRules.js');
 //const Store = require('ioredis');
@@ -53,13 +53,17 @@ const numBitsMissedEvents = eventStream.pipe(filter(event => event.eventType ===
 const numBugsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNumBugsMissed));
 const maxEnergyMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameMaxEnergyMissed));
 const useEventsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameUseEventsMissed));
+const noGameInstanceEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNotCreated));
+const gameEventCardFound = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameEventFound)); 
 const restOfEvents = eventStream.pipe(
   filter(
     event =>
       event.eventType !== EngineEvents.gameNumBitsMissed &&
       event.eventType !== EngineEvents.gameNumBugsMissed &&
       event.eventType !== EngineEvents.gameMaxEnergyMissed &&
-      event.eventType !== EngineEvents.gameUseEventsMissed 
+      event.eventType !== EngineEvents.gameUseEventsMissed &&
+      event.eventType !== EngineEvents.gameNotCreated &&
+      event.eventType !== EngineEvents.gameEventFound
 ));
 
 //on event send inlinekeyboard asking for num of bits 
@@ -86,13 +90,25 @@ useEventsMissedEvents.subscribe({
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
   }
 });
-//on any other event send the message configured
-restOfEvents.subscribe({
-  async next(event) {
-    return await sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+//on evenst where there is not game instance
+noGameInstanceEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
   }
 });
 
+gameEventCardFound.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType]);
+  }
+});
+
+//on any other event send the message configured
+restOfEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+  }
+});
 
 //configure bot behaviour with regExp
 bot.onText(/^\/start$/, InitConversationRequest);
@@ -238,13 +254,14 @@ function buildStatusMessage(gameState) {
 
   if (!gameState) { return null; }
 
+  const locked = (register) => register.locked ? "\u{274C}" : "";
   const playerTurn = () => gameState.playerList[gameState.playerTurn].name;
   const eneryLeft = () => gameState.playerList[gameState.playerTurn].energy;
   const currentObjetive = () => gameState.currentObjetive.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerA = () => gameState.registers.A.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerB = () => gameState.registers.B.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerC = () => gameState.registers.C.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerD = () => gameState.registers.D.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerA = () => gameState.registers.A.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerB = () => gameState.registers.B.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerC = () => gameState.registers.C.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerD = () => gameState.registers.D.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const objetivesLeft = () => gameState.objetives.length;
   const unresolved = () => gameState.unresolved;
   const maxUnresolved = () => Rules.MaxUnresolvedValue - gameState.bugsFound;
@@ -257,13 +274,13 @@ $> Objetive:
 
 -> ${currentObjetive()}
 -----------------
-A: ${registerA()}
+A: ${registerA()} ${locked(gameState.registers.A)}
 -----------------
-B: ${registerB()}
+B: ${registerB()} ${locked(gameState.registers.B)}
 -----------------
-C: ${registerC()}
+C: ${registerC()} ${locked(gameState.registers.C)}
 -----------------
-D: ${registerD()}
+D: ${registerD()} ${locked(gameState.registers.D)}
 -----------------
 
 $> \u{1F41E} found: ${gameState.bugsFound}
