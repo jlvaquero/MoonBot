@@ -154,7 +154,7 @@ function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
   const registerLocked = () => gameState.registers[cpu_reg1].locked || (cpu_reg2 ? gameState.registers[cpu_reg2].locked : false);
 
   if (registerLocked()) {
-    entStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
+    eventStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
     return null;
   }
 

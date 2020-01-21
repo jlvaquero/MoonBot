@@ -30,17 +30,17 @@ const telegramEventMessages = {
   [EngineEvents.notEnoughEnergy]: "%s. You have not enough \u{1F50B} for that operation.",
   [EngineEvents.operationApplied]: "Register operation applied.",
   [EngineEvents.objetiveAccomplished]: "\u{2705} Great %s! You have accomplished one objetive!",
-  [EngineEvents.bugFound]: "Ops! You have found a \u{1F41E}. Maximun objetive slots decreased.",
+  [EngineEvents.bugFound]: "Ops! You have found a bug in the program \u{1F41E}. Maximun objetive slots decreased.",
 
  // [EngineEvents.gameEventFound]: "Something has changed the computer state.",
-  [GameEventType.ErrorB]: "Error on Register B. Register B has been disabled \u{274C} for R/W.",
-  [GameEventType.ErrorC]: "Error on Register C. Register C has been disabled \u{274C} for R/W.",
-  [GameEventType.ErrorD]: "Error on Register D. Register D has been disabled \u{274C} for R/W.",
-  [GameEventType.ResetA]: "Register A has been reset \u{1F17E}",
-  [GameEventType.ResetB]: "Register B has been reset \u{1F17E}",
-  [GameEventType.ResetC]: "Register C has been reset \u{1F17E}",
-  [GameEventType.ResetD]: "Register D has been reset \u{1F17E}",
-  [EngineEvents.registerLocked]: "Found error on target register. Operation aborted."
+  [GameEventType.ErrorB]: "System malfunction! Register B has been disabled \u{274C} for Read/Write.",
+  [GameEventType.ErrorC]: "System malfunction! Register C has been disabled \u{274C} for Read/Write.",
+  [GameEventType.ErrorD]: "System malfunction! Register D has been disabled \u{274C} for Read/Write.",
+  [GameEventType.ResetA]: "System malfunction! Register A has been reset \u{1F17E}",
+  [GameEventType.ResetB]: "System malfunction! Register B has been reset \u{1F17E}",
+  [GameEventType.ResetC]: "System malfunction! Register C has been reset \u{1F17E}",
+  [GameEventType.ResetD]: "System malfunction! Register D has been reset \u{1F17E}",
+  [EngineEvents.registerLocked]: "Target register is disabled. Operation aborted."
 
 };
 

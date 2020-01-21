@@ -120,7 +120,6 @@ const GameCards = {
 
 };
 
-
 module.exports.Rules = Rules;
 module.exports.OperationCode = OperationCode;
 module.exports.CardType = CardType;

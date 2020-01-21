@@ -13,7 +13,7 @@ function ObjetivesGenerator(numBits, numBugs, useEvents) {
   const current = potentialObjetives.pop(); //ensure first objetive before add bugs and events
   potentialObjetives = potentialObjetives.concat(Array(numBugs).fill(GameCards.Bug)); //add bugs cards to the end
 
-  if (useEvents === "1") {
+  if (useEvents === "1") { //add events cards
     const events = [GameCards.ResetA, GameCards.ResetB, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD];
     potentialObjetives = potentialObjetives.concat(events);
   }

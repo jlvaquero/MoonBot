@@ -111,7 +111,7 @@ function Game(store) {
         return null;
       }
 
-      eventStream.next({ eventType: EngineEvents.gameStatusConsulted, gameId: gameId, playerId });
+      eventStream.next({ eventType: EngineEvents.gameStatusConsulted, gameState, playerId });
       return gameState;
     },
 
