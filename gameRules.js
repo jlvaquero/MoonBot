@@ -58,9 +58,9 @@ const Rules = {
   PlayerIsInGame(gameState, playerId) { return gameState.playerList.some((player) => player.name === playerId); },
   NoPlayersLeft(gameState) { return gameState.playerList.length < 1; },
   MaxUnresolvedReached(gameState) { return gameState.unresolved + gameState.bugsFound === this.MaxUnresolvedValue; },
-  NoObjetivesLeft(gameState) { return gameState.objetives.length === 0 && !gameState.currentObjetive.value; },
+  NoObjetivesLeft(gameState) { return gameState.objetives.length === 0 && !gameState.currentObjetive; },
   EnoughEnergyFor(gameState, operation) { return this.CurrentPlayer(gameState).energy >= this.OperationCost(operation); },
-  ObjetiveIsInRegA(gameState) { return gameState.registers.A.value === gameState.currentObjetive.value; },
+  ObjetiveIsInRegA(gameState) { return gameState.registers.A === gameState.currentObjetive.value; },
   NoEnergyLeft(gameState) { return this.CurrentPlayer(gameState).energy === 0; },
   NoUnresolvedLeft(gameState) { return gameState.unresolved === 0; },
   OperationCost(op) { return OperationCost[op]; },
@@ -81,14 +81,16 @@ const Rules = {
     return gameState;
   },
   ApplyRegisterReset(register, gameState) {
-    gameState.registers[register].value = 0;
+    gameState.registers[register] = 0;
     return gameState;
   },
   ApplyRegisterError(register, gameState) {
-    gameState.registers[register].locked = true;
+    gameState.errors[register] = true;
     return gameState;
   },
-  ApplyOperationError(gameState) {
+  ApplyOperationError(operation, gameState) {
+    gameState.errors[operation] = true;
+    return gameState;
   },
   MaxNumObjetives: 12,
   MaxUnresolvedValue: 6
@@ -110,14 +112,13 @@ const GameCards = {
   ResetB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B") }),
   ResetC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetC, applyRules: Rules.ApplyRegisterReset.bind(undefined, "C") }),
   ResetD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetD, applyRules: Rules.ApplyRegisterReset.bind(undefined, "D") }),
-  OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: (gameState) => { return gameState; } }), //TODO: think about how to apply the OK game event
+  OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: (gameState) => { return gameState; } }),
   ErrorB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "B") }),
   ErrorC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorC, applyRules: Rules.ApplyRegisterError.bind(undefined, "C") }),
   ErrorD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorD, applyRules: Rules.ApplyRegisterError.bind(undefined, "D") }),
-  ErrorROL: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorROL, applyRules: Rules.ApplyOperationError }), //TODO: think about how to lock the operation
-  ErrorXOR: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorXOR, applyRules: Rules.ApplyOperationError }),
-  ErrorNOT: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorNOT, applyRules: Rules.ApplyOperationError })
-
+  ErrorROL: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorROL, applyRules: Rules.ApplyOperationError.bind(undefined, "ROL") }),
+  ErrorXOR: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorXOR, applyRules: Rules.ApplyOperationError.bind(undefined, "XOR") }),
+  ErrorNOT: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorNOT, applyRules: Rules.ApplyOperationError.bind(undefined, "NOT") })
 };
 
 module.exports.Rules = Rules;

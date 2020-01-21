@@ -30,7 +30,8 @@ const objetiveAccomplished = Symbol.for("OBJETIVE_ACCOMPLISHED");
 const bugFound = Symbol.for("BUG_FOUND");
 const gameEventFound = Symbol.for("GAME_EVENT_FOUND");
 
-const registerLocked = Symbol.for("REGISTER_LOCKED_ABORT");
+const registerLocked = Symbol.for("REGISTER_LOCKED");
+const operationLocked = Symbol.for("OPERATION_LOCKED");
 
 module.exports.gameLost = gameLost;
 module.exports.gameWon = gameWon;
@@ -65,3 +66,4 @@ module.exports.bugFound = bugFound;
 module.exports.gameEventFound = gameEventFound;
 
 module.exports.registerLocked = registerLocked;
+module.exports.operationLocked = operationLocked;

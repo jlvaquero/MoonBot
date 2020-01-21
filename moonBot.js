@@ -3,7 +3,7 @@ const { OperationCode } = require('./gameRules');
 const EngineEvents = require('./engineEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
-const { filter, concatMap } = require('rxjs/operators');
+const { filter } = require('rxjs/operators');
 const keyBoards = require('./telegramKeyboard');
 const { Rules } = require('./gameRules.js');
 //const Store = require('ioredis');
@@ -254,14 +254,14 @@ function buildStatusMessage(gameState) {
 
   if (!gameState) { return null; }
 
-  const locked = (register) => register.locked ? "\u{274C}" : "";
+  const locked = (hasError) => hasError ? "\u{274C}" : "";
   const playerTurn = () => gameState.playerList[gameState.playerTurn].name;
   const eneryLeft = () => gameState.playerList[gameState.playerTurn].energy;
   const currentObjetive = () => gameState.currentObjetive.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerA = () => gameState.registers.A.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerB = () => gameState.registers.B.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerC = () => gameState.registers.C.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
-  const registerD = () => gameState.registers.D.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerA = () => gameState.registers.A.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerB = () => gameState.registers.B.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerC = () => gameState.registers.C.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
+  const registerD = () => gameState.registers.D.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
   const objetivesLeft = () => gameState.objetives.length;
   const unresolved = () => gameState.unresolved;
   const maxUnresolved = () => Rules.MaxUnresolvedValue - gameState.bugsFound;
@@ -274,13 +274,13 @@ $> Objetive:
 
 -> ${currentObjetive()}
 -----------------
-A: ${registerA()} ${locked(gameState.registers.A)}
+A: ${registerA()} ${locked(gameState.errors.A)}
 -----------------
-B: ${registerB()} ${locked(gameState.registers.B)}
+B: ${registerB()} ${locked(gameState.errors.B)}
 -----------------
-C: ${registerC()} ${locked(gameState.registers.C)}
+C: ${registerC()} ${locked(gameState.errors.C)}
 -----------------
-D: ${registerD()} ${locked(gameState.registers.D)}
+D: ${registerD()} ${locked(gameState.errors.D)}
 -----------------
 
 $> \u{1F41E} found: ${gameState.bugsFound}

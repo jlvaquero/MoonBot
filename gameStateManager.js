@@ -3,14 +3,14 @@ const { Rules, CardType } = require('./gameRules');
 const EngineEvents = require('./engineEvents');
 const { Subject } = require('rxjs');
 const { pipe } = require('./utils');
+const RegisterOperations = require('./registerOperations');
 
 //create the event stream
 const eventStream = new Subject();
 
 //stop piping functions on null output and return {gameState :null} as fallback value
 const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null }; });
-/* define the behavior of the operations piping stand alone functions
-   maintenance here is a piece of cake*/
+// define the behavior of the operations piping stand alone functions
 const joinPlayerPublicApi = pipeUntilNull(
   checkGameWasStarted,
   checkAlreadyJoined,
@@ -45,7 +45,9 @@ const executeBitOperationPublicApi = pipeUntilNull(
   checkNotJoined,
   checkGameWasNotStarted,
   checkIsNotPlayerTurn,
+  obtainOperationCost,
   checkNotEnoughEnergy,
+  checkOperationLocked,
   checkRegisterLocked,
   executeBitOperation,
   checkObjetiveAccomplished,
@@ -72,6 +74,10 @@ const gameStateManager = {
 /*
  * stand alone functions with behaviour. every one has a single responsibility for state checks and raise its related event
  */
+
+function obtainOperationCost({ operation }) {
+  return { cost: Rules.OperationCost(operation) };
+}
 
 //notfy the game was started to not allow start again or join players
 function checkGameWasStarted({ gameState, playerId }) {
@@ -151,10 +157,22 @@ function checkGameLost({ gameState, playerId }) {
 
 function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 
-  const registerLocked = () => gameState.registers[cpu_reg1].locked || (cpu_reg2 ? gameState.registers[cpu_reg2].locked : false);
+  const registerLocked = () => gameState.errors[cpu_reg1] || (cpu_reg2 ? gameState.errors[cpu_reg2] : false);
 
   if (registerLocked()) {
     eventStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
+    return null;
+  }
+
+  return { gameState };
+}
+
+function checkOperationLocked({ gameState, playerId, operation}) {
+
+  const operationLocked = () => gameState.errors[operation];
+
+  if (operationLocked()) {
+    eventStream.next({ eventType: EngineEvents.operationLocked, gameState, playerId });
     return null;
   }
 
@@ -264,7 +282,7 @@ function raiseGameStatusChanged({ gameState , playerId}) {
 }
 
 //
-function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) { //TODO: include bugs and events
+function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) {
 
   const { registerValues, objetives, currentObjetive } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
 
@@ -279,9 +297,9 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
       registers: Object.assign(
         { ...newRegisterState },
         {
-          B: { value: registerValues[0], locked: false },
-          C: { value: registerValues[1], locked: false  },
-          D: { value: registerValues[2], locked: false  }
+          B: registerValues[0],
+          C: registerValues[1],
+          D: registerValues[2]
         }),
       rules: {
         maxEnergy: Rules.KeepMaxEnergyInRange(maxEnergy)
@@ -354,9 +372,13 @@ function endTurn({ gameState, playerId }) {
 }
 
 function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, cpu_reg2 }) {
-  const player = () => Rules.CurrentPlayer(gameState);
 
-  gameState.registers[cpu_reg1].value = operation(gameState.registers[cpu_reg1].value, cpu_reg2 ? gameState.registers[cpu_reg2].value : cpu_reg2);
+  const player = () => Rules.CurrentPlayer(gameState);
+  const cpu_reg_value = (reg) => reg ? gameState.registers[reg] : reg;
+
+  const operationFnc = RegisterOperations(gameState.numBits)[operation];
+
+  gameState.registers[cpu_reg1] = operationFnc(cpu_reg_value(cpu_reg1), cpu_reg_value(cpu_reg2));
   player().energy -= cost;
 
   eventStream.next({ eventType: EngineEvents.operationApplied, gameState, playerId });
@@ -367,11 +389,25 @@ const newGameState = {
   unresolved: 1,
   started: false,
   playerTurn: 0,
-  bugsFound: 0
+  bugsFound: 0,
+  errors: {
+    B: false,
+    C: false,
+    D: false,
+    ROL: false,
+    ROR: false,
+    INC: false,
+    DEC: false,
+    AND: false,
+    OR: false,
+    NOT: false,
+    XOR: false,
+    MOV: false
+  }
 };
 
 const newRegisterState = {
-  A: { value: 0, locked: false }
+  A: 0
 };
 
 module.exports = gameStateManager;

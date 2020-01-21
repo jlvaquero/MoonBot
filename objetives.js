@@ -1,5 +1,5 @@
 const utils = require('./utils');
-const { Rules, CardType, GameCards } = require('./gameRules');
+const { Rules, GameCards } = require('./gameRules');
 
 function ObjetivesGenerator(numBits, numBugs, useEvents) {
 
@@ -14,7 +14,7 @@ function ObjetivesGenerator(numBits, numBugs, useEvents) {
   potentialObjetives = potentialObjetives.concat(Array(numBugs).fill(GameCards.Bug)); //add bugs cards to the end
 
   if (useEvents === "1") { //add events cards
-    const events = [GameCards.ResetA, GameCards.ResetB, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD];
+    const events = [GameCards.ResetA, GameCards.ResetB, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD, GameCards.ErrorNOT, GameCards.ErrorROL, GameCards.ErrorXOR].concat(Array(4).fill(GameCards.OK));
     potentialObjetives = potentialObjetives.concat(events);
   }
 
