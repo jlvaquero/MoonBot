@@ -4,8 +4,9 @@ const EngineEvents = require('./engineEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
 const { filter } = require('rxjs/operators');
+const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
-const { Rules } = require('./gameRules.js');
+const { Rules, GameEventType } = require('./gameRules.js');
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -48,23 +49,20 @@ const Game = require('./moonGame')(FakeStore);
  * Obtain game event stream and subscribe for behaviour
  */
 const eventStream = Game.EventStream;
+let numBitsMissedEvents;
+let numBugsMissedEvents;
+let maxEnergyMissedEvents;
+let useEventsMissedEvents;
+let noGameInstanceEvents;
+let gameEventCardFound;
+let restOfEvents;
 
-const numBitsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNumBitsMissed));
-const numBugsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNumBugsMissed));
-const maxEnergyMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameMaxEnergyMissed));
-const useEventsMissedEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameUseEventsMissed));
-const noGameInstanceEvents = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameNotCreated));
-const gameEventCardFound = eventStream.pipe(filter(event => event.eventType === EngineEvents.gameEventFound)); 
-const restOfEvents = eventStream.pipe(
-  filter(
-    event =>
-      event.eventType !== EngineEvents.gameNumBitsMissed &&
-      event.eventType !== EngineEvents.gameNumBugsMissed &&
-      event.eventType !== EngineEvents.gameMaxEnergyMissed &&
-      event.eventType !== EngineEvents.gameUseEventsMissed &&
-      event.eventType !== EngineEvents.gameNotCreated &&
-      event.eventType !== EngineEvents.gameEventFound
-));
+[numBitsMissedEvents, restOfEvents] = partition(eventStream, event => event.eventType === EngineEvents.gameNumBitsMissed);
+[numBugsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNumBugsMissed);
+[maxEnergyMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameMaxEnergyMissed);
+[useEventsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameUseEventsMissed);
+[noGameInstanceEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNotCreated);
+[gameEventCardFound, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameEventFound);
 
 //on event send inlinekeyboard asking for num of bits 
 numBitsMissedEvents.subscribe({
@@ -90,7 +88,7 @@ useEventsMissedEvents.subscribe({
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
   }
 });
-//on evenst where there is not game instance
+//on eventz where there is not game instance
 noGameInstanceEvents.subscribe({
   next(event) {
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
@@ -99,21 +97,28 @@ noGameInstanceEvents.subscribe({
 
 gameEventCardFound.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType]);
+    let fixKeyBoard;
+    if (event.gameEvent.eventType === GameEventType.Ok) {
+      fixKeyBoard = keyBoards.fixKeyBoard(event.gameState.errors); //include inline keyBoard asking players for fix
+    }
+    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType], fixKeyBoard);
   }
 });
 
-//on any other event send the message configured
+//on any other event
 restOfEvents.subscribe({
   next(event) {
-    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+    sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+    if (event.eventType === EngineEvents.fixOperationApplied) { //state of the game changed on inline callback query so...
+      sendGameStatus(event.playerId, event.gameState.id, event.gameState);  //show new state
+    }
   }
 });
 
 //configure bot behaviour with regExp
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateGameRequest);
-bot.on('callback_query', steppedCreateGameRequest);
+bot.on('callback_query', inlineCallbackParser);
 bot.onText(/^\/joingame$/, JoinGameRequest);
 bot.onText(/^\/leavegame$/, LeaveGameRequest);
 bot.onText(/^\/startgame$/, StartGameRequest);
@@ -123,79 +128,83 @@ bot.onText(/^\/cancelgame$/, CancellGameRequest);
 bot.onText(/^\/help$/, HelpRequest);
 bot.onText(/^\/rules$/, RulesRequest);
 bot.onText(/^\/operations$/, OperationListRequest);
-bot.onText(/^\/inc ([A-D]|[a-d])$/, IncRequest);
-bot.onText(/^\/dec ([A-D]|[a-d])$/, DecRequest);
-bot.onText(/^\/rol ([A-D]|[a-d])$/, RolRequest);
-bot.onText(/^\/ror ([A-D]|[a-d])$/, RorRequest);
-bot.onText(/^\/mov ([A-D]|[a-d]) ([A-D]|[a-d])$/, MovRequest);
-bot.onText(/^\/not ([A-D]|[a-d])$/, NotRequest);
-bot.onText(/^\/or ([A-D]|[a-d]) ([A-D]|[a-d])$/, OrRequest);
-bot.onText(/^\/and ([A-D]|[a-d]) ([A-D]|[a-d])$/, AndRequest);
-bot.onText(/^\/xor ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
+bot.onText(/^\/(inc|INC) ([A-D]|[a-d])$/, IncRequest);
+bot.onText(/^\/(dec|DEC) ([A-D]|[a-d])$/, DecRequest);
+bot.onText(/^\/(rol|ROL) ([A-D]|[a-d])$/, RolRequest);
+bot.onText(/^\/(ror|ROR) ([A-D]|[a-d])$/, RorRequest);
+bot.onText(/^\/(mov|MOV) ([A-D]|[a-d]) ([A-D]|[a-d])$/, MovRequest);
+bot.onText(/^\/(not|NOT) ([A-D]|[a-d])$/, NotRequest);
+bot.onText(/^\/(or|OR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, OrRequest);
+bot.onText(/^\/(and|AND) ([A-D]|[a-d]) ([A-D]|[a-d])$/, AndRequest);
+bot.onText(/^\/(xor|XOR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
 
-async function InitConversationRequest(msg) {
+function InitConversationRequest(msg) {
   bot.sendMessage(msg.chat.id, welcome_message(msg));
 }
 
-async function CreateGameRequest(msg) {
-  await Game.CreateGame(msg.chat.id, msg.from.username);
+function CreateGameRequest(msg) {
+  Game.CreateGame(msg.chat.id, msg.from.username);
 }
 
 //handle inline keyboard responses
-async function steppedCreateGameRequest(callbackQuery) {
+async function inlineCallbackParser(callbackQuery) {
 
   let args = new Array();
+  args.push(callbackQuery.message.chat.id); //gameId
+  args.push(callbackQuery.from.username); //playerId
+  args = args.concat(callbackQuery.data.split(" "));
 
-  args.push(callbackQuery.message.chat.id);
-  args.push(callbackQuery.from.username);
-  args = args.concat(callbackQuery.data.split(" ")); //parse data to get an array from "numBits numBugs maxEnergy useEvents" string
-
-  await Game.CreateGame.apply(Game, args); //will raise missed events if args is incomplete
+  if (args[2] === "fix") { //[gameId, playerId, fix, B]
+    await Game.FixError.apply(Game, args); //will raise fixOperationApplied event
+  }
+  else {
+    await Game.CreateGame.apply(Game, args); // [gameId, playerId, ...create game parameters]; will raise missed events if args is incomplete
+  }
 
   bot.answerCallbackQuery(callbackQuery.id); //just finish the callback; the job will be done on missed events subscriptions
 }
 
-async function JoinGameRequest(msg) {
-  await Game.JoinGame(msg.chat.id, msg.from.username); //will raise events
+function JoinGameRequest(msg) {
+  Game.JoinGame(msg.chat.id, msg.from.username); //will raise events
 }
 
-async function LeaveGameRequest(msg) {
-  await Game.LeaveGame(msg.chat.id, msg.from.username); //will raise events
+function LeaveGameRequest(msg) {
+  Game.LeaveGame(msg.chat.id, msg.from.username); //will raise events
 }
 
 async function StartGameRequest(msg) {
   const gameState = await Game.StartGame(msg.chat.id, msg.from.username); //will raise events
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState); //after handle all events, send game status 
+  sendGameStatus(msg.from.username, msg.chat.id, gameState); //after handle all events, send game status 
 }
 
 async function StatusGameRequest(msg) {
   const gameState = await Game.StatusGame(msg.chat.id, msg.from.username);
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function EndTurnRequest(msg) {
   const gameState = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
-async function CancellGameRequest(msg) {
-  await Game.CancelGame(msg.chat.id);
+function CancellGameRequest(msg) {
+  Game.CancelGame(msg.chat.id);
 }
 
 function HelpRequest(msg) {
-  sendMessage(msg.from.username, msg.chat.id, help_message);
+  return sendMessage(msg.from.username, msg.chat.id, help_message);
 }
 
 function RulesRequest(msg) {
-  sendMessage(msg.from.username, msg.chat.id, rules_message);
+  return sendMessage(msg.from.username, msg.chat.id, rules_message);
 }
 
 function OperationListRequest(msg) {
-  sendMessage(msg.from.username, msg.chat.id, opList_message);
+  return sendMessage(msg.from.username, msg.chat.id, opList_message);
 }
 
 //partial applied funcions to provide naming context makes this more readable 
-const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc); 
+const ExecuteIncOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.inc);
 const ExecuteDecOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.dec);
 const ExecuteRolOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.rol);
 const ExecuteRorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.ror);
@@ -206,46 +215,46 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[1].toUpperCase()); //use the partial applied funcion above
+  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied funcion above
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
-  const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
-  const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
-  const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
-  const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
-  const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[1].toUpperCase());
+  const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
-  const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
-  const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
-  const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[1].toUpperCase(), match[2].toUpperCase());
+  const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
   await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
@@ -254,7 +263,8 @@ function buildStatusMessage(gameState) {
 
   if (!gameState) { return null; }
 
-  const locked = (hasError) => hasError ? "\u{274C}" : "";
+  const lockedRegister = (hasError) => hasError ? "\u{274C}" : "";
+  const lockedOperation = (hasError) => hasError ? "\u{274C}" : "\u{2705}";
   const playerTurn = () => gameState.playerList[gameState.playerTurn].name;
   const eneryLeft = () => gameState.playerList[gameState.playerTurn].energy;
   const currentObjetive = () => gameState.currentObjetive.value.toString(2).padStart(gameState.numBits, "0".repeat(gameState.numBits));
@@ -274,14 +284,19 @@ $> Objetive:
 
 -> ${currentObjetive()}
 -----------------
-A: ${registerA()} ${locked(gameState.errors.A)}
+A: ${registerA()} ${lockedRegister(gameState.errors.A)}
 -----------------
-B: ${registerB()} ${locked(gameState.errors.B)}
+B: ${registerB()} ${lockedRegister(gameState.errors.B)}
 -----------------
-C: ${registerC()} ${locked(gameState.errors.C)}
+C: ${registerC()} ${lockedRegister(gameState.errors.C)}
 -----------------
-D: ${registerD()} ${locked(gameState.errors.D)}
+D: ${registerD()} ${lockedRegister(gameState.errors.D)}
 -----------------
+
+$> Instruction status:
+   ROL: ${lockedOperation(gameState.errors.ROL)}
+   NOT: ${lockedOperation(gameState.errors.NOT)}
+   XOR: ${lockedOperation(gameState.errors.XOR)}
 
 $> \u{1F41E} found: ${gameState.bugsFound}
 $> Objetive slot: ${unresolved()}/${maxUnresolved()}

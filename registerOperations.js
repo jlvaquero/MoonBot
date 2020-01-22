@@ -6,36 +6,36 @@ function Operations(numBits) {
 
   return {
 
-    inc(value) {
+    INC(value) {
       if (value === maxValue) return 0;
       return ++value;
     },
-    dec(value) {
+    DEC(value) {
       if (value === 0) return maxValue;
       return --value;
     },
-    mov(_, value2 ) {
+    MOV(_, value2) {
       return value2;
     },
-    not(value) {
+    NOT(value) {
       return maxValue - value;
     },
-    or(value1, value2) {
+    OR(value1, value2) {
       return value1 | value2;
     },
-    and(value1, value2) {
+    AND(value1, value2) {
       return value1 & value2;
     },
-    xor(value1, value2) {
+    XOR(value1, value2) {
       return value1 ^ value2;
     },
-    ror(value) {
+    ROR(value) {
       if (value === 0 || value === maxValue) return value;
       const newValue = (value >> 1);
       if ((value & 0x1) === 0x1) return (newValue | halfValue);
       return newValue;
     },
-    rol(value) {
+    ROL(value) {
       if (value === 0 || value === maxValue) return value;
       const newValue = (value << 1);
       if (value < halfValue) return newValue;

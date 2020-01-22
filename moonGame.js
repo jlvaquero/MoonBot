@@ -141,6 +141,19 @@ function Game(store) {
       gameState = StateManager.ExecuteBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState;
 
       return gameState;
+    },
+
+    async FixError(gameId, playerId, _ , error) {
+
+      let gameState = await store.get(gameId);
+      if (!gameState) {
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+        return null;
+      }
+
+      gameState = StateManager.fixError({ gameState, playerId, error }).gameState;
+
+      return gameState;
     }
   };
 

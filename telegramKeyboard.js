@@ -26,7 +26,26 @@
   useEventsKeyboard(numBits, numBugs, maxEnergy) {
     return {
       inline_keyboard: [
-        [{ text: "Yes", callback_data: `${numBits} ${numBugs} ${maxEnergy} 1` }, { text: "No", callback_data: `${numBits} ${numBugs} ${maxEnergy} 0` }]
+        [{ text: "No", callback_data: `${numBits} ${numBugs} ${maxEnergy} 0` }, { text: "Yes", callback_data: `${numBits} ${numBugs} ${maxEnergy} 1` }]
+      ]
+    };
+  },
+
+  fixKeyBoard(errors) {
+
+    const regArray = new Array();
+    errors.B ? regArray.push({ text: "Fix B", callback_data: `fix B` }) : null;
+    errors.C ? regArray.push({ text: "Fix C", callback_data: `fix C` }) : null;
+    errors.D ? regArray.push({ text: "Fix D", callback_data: `fix D` }) : null;
+    const opArray = new Array();
+    errors.ROL ? opArray.push({ text: "Fix ROL", callback_data: `fix ROL` }) : null;
+    errors.NOT ? opArray.push({ text: "Fix NOT", callback_data: `fix NOT` }) : null;
+    errors.XOR ? opArray.push({ text: "Fix XOR", callback_data: `fix XOR` }) : null;
+
+    return {
+      inline_keyboard: [
+        regArray,
+        opArray
       ]
     };
   }

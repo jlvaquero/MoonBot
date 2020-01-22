@@ -27,11 +27,14 @@ const roundFinished = Symbol.for("ROUND_FINISHED");
 const notEnoughEnergy = Symbol.for("NOT_ENOUGH_ENERGY");
 const operationApplied = Symbol.for("OPERATION_APPLIED");
 const objetiveAccomplished = Symbol.for("OBJETIVE_ACCOMPLISHED");
+
 const bugFound = Symbol.for("BUG_FOUND");
 const gameEventFound = Symbol.for("GAME_EVENT_FOUND");
-
 const registerLocked = Symbol.for("REGISTER_LOCKED");
 const operationLocked = Symbol.for("OPERATION_LOCKED");
+const fixOperationPending = Symbol.for("FIX_OPERATION_PENDING");
+const fixOperationApplied = Symbol.for("FIX_OPERATION_APPLIED");
+const noFixLeft = Symbol.for("NO_FIX_LEFT");
 
 module.exports.gameLost = gameLost;
 module.exports.gameWon = gameWon;
@@ -62,8 +65,11 @@ module.exports.roundFinished = roundFinished;
 module.exports.notEnoughEnergy = notEnoughEnergy;
 module.exports.operationApplied = operationApplied;
 module.exports.objetiveAccomplished = objetiveAccomplished;
+
 module.exports.bugFound = bugFound;
 module.exports.gameEventFound = gameEventFound;
-
 module.exports.registerLocked = registerLocked;
 module.exports.operationLocked = operationLocked;
+module.exports.fixOperationPending = fixOperationPending;
+module.exports.fixOperationApplied = fixOperationApplied;
+module.exports.noFixLeft = noFixLeft;

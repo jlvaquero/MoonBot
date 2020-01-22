@@ -6,29 +6,29 @@ const Cpu_Bits = {
 };
 
 const OperationCost = {
-  inc: 2,
-  dec: 2,
-  rol: 1,
-  ror: 1,
-  mov: 1,
-  not: 1,
-  or: 0.5,
-  and: 0.5,
-  xor: 0.5
+  INC: 2,
+  DEC: 2,
+  ROL: 1,
+  ROR: 1,
+  MOV: 1,
+  NOT: 1,
+  OR: 0.5,
+  AND: 0.5,
+  XOR: 0.5
 };
 
 const defaultEnergy = 3;
 
 const OperationCode = {
-  inc: "inc",
-  dec: "dec",
-  rol: "rol",
-  ror: "ror",
-  mov: "mov",
-  not: "not",
-  or: "or",
-  and: "and",
-  xor: "xor"
+  inc: "INC",
+  dec: "DEC",
+  rol: "ROL",
+  ror: "ROR",
+  mov: "MOV",
+  not: "NOT",
+  or: "OR",
+  and: "AND",
+  xor: "XOR"
 };
 
 const CardType = {
@@ -65,6 +65,14 @@ const Rules = {
   NoUnresolvedLeft(gameState) { return gameState.unresolved === 0; },
   OperationCost(op) { return OperationCost[op]; },
   LastPlayerPlaying(gameState) { return gameState.playerTurn === gameState.playerList.length - 1; },
+  SomeSystemError(gameState) {
+    return gameState.errors.B ||
+      gameState.errors.C ||
+      gameState.errors.D ||
+      gameState.errors.ROL ||
+      gameState.errors.NOT ||
+      gameState.errors.XOR;
+  },
   KeepMaxEnergyInRange(energy) {
     energy = Number(energy);
     if (energy !== 1.5 && energy !== 2 && energy !== 2.5 && energy !== 3) {
@@ -92,6 +100,10 @@ const Rules = {
     gameState.errors[operation] = true;
     return gameState;
   },
+  ApplyFixOperation(gameState) {
+    if (Rules.SomeSystemError(gameState)) { gameState.errors.fixPending += 1; }
+    return gameState;
+  },
   MaxNumObjetives: 12,
   MaxUnresolvedValue: 6
 };
@@ -112,7 +124,7 @@ const GameCards = {
   ResetB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B") }),
   ResetC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetC, applyRules: Rules.ApplyRegisterReset.bind(undefined, "C") }),
   ResetD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetD, applyRules: Rules.ApplyRegisterReset.bind(undefined, "D") }),
-  OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: (gameState) => { return gameState; } }),
+  OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: Rules.ApplyFixOperation }),
   ErrorB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "B") }),
   ErrorC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorC, applyRules: Rules.ApplyRegisterError.bind(undefined, "C") }),
   ErrorD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorD, applyRules: Rules.ApplyRegisterError.bind(undefined, "D") }),

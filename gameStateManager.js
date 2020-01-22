@@ -10,6 +10,7 @@ const eventStream = new Subject();
 
 //stop piping functions on null output and return {gameState :null} as fallback value
 const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null }; });
+
 // define the behavior of the operations piping stand alone functions
 const joinPlayerPublicApi = pipeUntilNull(
   checkGameWasStarted,
@@ -36,6 +37,7 @@ const endTurnPublicApi = pipeUntilNull(
   checkNotJoined,
   checkGameWasNotStarted,
   checkIsNotPlayerTurn,
+  checkFixPending,
   endTurn,
   checkGameLost,
   raiseGameStatusChanged
@@ -45,6 +47,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
   checkNotJoined,
   checkGameWasNotStarted,
   checkIsNotPlayerTurn,
+  checkFixPending,
   obtainOperationCost,
   checkNotEnoughEnergy,
   checkOperationLocked,
@@ -57,6 +60,11 @@ const executeBitOperationPublicApi = pipeUntilNull(
   raiseGameStatusChanged
 );
 
+const fixErrorPublicApi = pipeUntilNull(
+  checkNoFixLeft,
+  fixError
+);
+
 //expose the piped functions as the state manager public api
 const gameStateManager = {
 
@@ -67,8 +75,8 @@ const gameStateManager = {
   LeavePlayer: leavePlayerPublicApi,
   StartGame: startGamePublicApi,
   EndTurn: endTurnPublicApi,
-  ExecuteBitOperation: executeBitOperationPublicApi
-
+  ExecuteBitOperation: executeBitOperationPublicApi,
+  fixError: fixErrorPublicApi
 };
 
 /*
@@ -155,6 +163,7 @@ function checkGameLost({ gameState, playerId }) {
   return { gameState };
 }
 
+//notify operation register is locked
 function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 
   const registerLocked = () => gameState.errors[cpu_reg1] || (cpu_reg2 ? gameState.errors[cpu_reg2] : false);
@@ -167,6 +176,7 @@ function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
   return { gameState };
 }
 
+//notify operation is locked
 function checkOperationLocked({ gameState, playerId, operation}) {
 
   const operationLocked = () => gameState.errors[operation];
@@ -192,6 +202,7 @@ function checkNotEnoughEnergy({ gameState, playerId, cost }) {
 }
 
 const pipeAlways = pipe.bind(undefined, () => false, null); //pipe without stop condition
+//objetive accomplisher decrease objetive; draws and apply game cards
 const objetiveAccomplisher = pipeAlways(
   decreaseObjetiveSlot,
   obtainNextObjetive
@@ -220,7 +231,7 @@ function decreaseObjetiveSlot({ gameState }) {
   return { gameState };
 }
 
-//modify the game state for accomplish a objetive
+//draws game cards until a objetive card is found; apply event card on the course of looking for a objetive card
 function obtainNextObjetive({ gameState, playerId }) {
 
   let card = gameState.objetives.pop();
@@ -234,6 +245,7 @@ function obtainNextObjetive({ gameState, playerId }) {
   return { gameState };
 }
 
+//apply the card rules and raise related events
 function applyCardRules(gameState, card, playerId) {
 
   gameState = card.applyRules(gameState);
@@ -262,6 +274,29 @@ function checkGameWon({ gameState, playerId }) {
   return { gameState };
 }
 
+//notify a fix event is pending of confirmation
+function checkFixPending({ gameState, playerId }) {
+  const fixRequested = () => gameState.errors.fixPending !== 0;
+
+  if (fixRequested()) {
+    eventStream.next({ eventType: EngineEvents.fixOperationPending, gameState, playerId });
+    return null;
+  }
+
+  return { gameState };
+}
+
+//notify no more fix events left
+function checkNoFixLeft({ gameState, playerId }) {
+  const noFixLeft = () => gameState.errors.fixPending === 0;
+  if (noFixLeft()) {
+    eventStream.next({ eventType: EngineEvents.noFixLeft, gameState, playerId });
+    return null;
+  }
+
+  return { gameState };
+}
+
 //check if an automatic end turn should happend because playes has 0 energy or there is no unresolved objetives in unresolved queue
 function checkShouldEndTurn({ gameState, playerId }) {
 
@@ -281,7 +316,10 @@ function raiseGameStatusChanged({ gameState , playerId}) {
   return { gameState };
 }
 
-//
+/*
+ Core main functions. All previous and further checks are done piping the check functions.
+ */
+//game creation with inital state
 function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }) {
 
   const { registerValues, objetives, currentObjetive } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
@@ -385,29 +423,34 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
   return { gameState };
 }
 
+function fixError({ gameState, playerId, error }) {
+  gameState.errors[error] = false;
+  gameState.errors.fixPending -= 1;
+  eventStream.next({ eventType: EngineEvents.fixOperationApplied, gameState, playerId });
+  return { gameState };
+}
+
+//default game state for new game
 const newGameState = {
   unresolved: 1,
   started: false,
   playerTurn: 0,
   bugsFound: 0,
   errors: {
+    fixPending: 0,
     B: false,
     C: false,
     D: false,
     ROL: false,
-    ROR: false,
-    INC: false,
-    DEC: false,
-    AND: false,
-    OR: false,
     NOT: false,
-    XOR: false,
-    MOV: false
+    XOR: false
   }
 };
 
+//defauls register state for new game
 const newRegisterState = {
   A: 0
 };
 
+//expose just the public api
 module.exports = gameStateManager;

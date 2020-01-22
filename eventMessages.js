@@ -26,12 +26,14 @@ const telegramEventMessages = {
   [EngineEvents.notPlayerTurn]: "It is not your turn %s.",
 
   [EngineEvents.turnEnded]: "\u{1F468}\u{200D}\u{1F680} %s ends turn.",
-  [EngineEvents.roundFinished]: "New round \u{1F504} has been started. Objetive slot increased.",
-  [EngineEvents.notEnoughEnergy]: "%s. You have not enough \u{1F50B} for that operation.",
-  [EngineEvents.operationApplied]: "\u{1F197} Register operation applied.",
+  [EngineEvents.roundFinished]: "\u{1F504} New round has been started. Objetive slot increased.",
+  [EngineEvents.notEnoughEnergy]: "%s. You have not enough \u{1F50B} for that instruction.",
+  [EngineEvents.operationApplied]: "\u{2139} Register instruction applied.",
   [EngineEvents.objetiveAccomplished]: "\u{2705} Great %s! You have accomplished one objetive!",
   [EngineEvents.bugFound]: "\u{26A0} Bug \u{1F41E} found in the code. Maximun objetive slots decreased.",
-
+  [EngineEvents.fixOperationPending]: "There is a fix pending to be applied.",
+  [EngineEvents.noFixLeft]: "\u{26D4} The fix has been already applied." ,
+  [EngineEvents.fixOperationApplied]: "\u{1F527} System malfunction fixed!",
  // [EngineEvents.gameEventFound]: "Something has changed the computer state.",
   [GameEventType.ErrorB]: "\u{26A0} System malfunction! Register B has been disabled \u{274C} for Read/Write.",
   [GameEventType.ErrorC]: "\u{26A0} System malfunction! Register C has been disabled \u{274C} for Read/Write.",
@@ -40,12 +42,13 @@ const telegramEventMessages = {
   [GameEventType.ResetB]: "\u{26A0} System malfunction! Register B has been reset \u{1F17E}",
   [GameEventType.ResetC]: "\u{26A0} System malfunction! Register C has been reset \u{1F17E}",
   [GameEventType.ResetD]: "\u{26A0} System malfunction! Register D has been reset \u{1F17E}",
-  [GameEventType.ErrorNOT]: "\u{26A0} System malfunction! NOT operation has been disabled. \u{274C}",
-  [GameEventType.ErrorROL]: "\u{26A0} System malfunction! ROL operation has been disabled. \u{274C}",
-  [GameEventType.ErrorXOR]: "\u{26A0} System malfunction! XOR operation has been disabled. \u{274C}",
+  [GameEventType.ErrorNOT]: "\u{26A0} System malfunction! NOT instruction has been disabled. \u{274C}",
+  [GameEventType.ErrorROL]: "\u{26A0} System malfunction! ROL instruction has been disabled. \u{274C}",
+  [GameEventType.ErrorXOR]: "\u{26A0} System malfunction! XOR instruction has been disabled. \u{274C}",
+  [GameEventType.Ok]: "\u{1F197} Recovering from system malfunction if needed.",
 
   [EngineEvents.registerLocked]: "\u{26D4} Target register is disabled. Operation aborted.",
-  [EngineEvents.operationLocked]: "\u{26D4} Requested operation is disabled. Operation aborted."
+  [EngineEvents.operationLocked]: "\u{26D4} Requested instruction is disabled. Operation aborted."
 
 };
 
