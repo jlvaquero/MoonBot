@@ -3,7 +3,7 @@ const { Rules, GameCards } = require('./gameRules');
 
 function ObjetivesGenerator(numBits, numBugs, useEvents) {
 
-  const maxValue = Math.pow(2, numBits) - 1;
+  /*const maxValue = Math.pow(2, numBits) - 1;
 
   let potentialObjetives = utils.Range(1, maxValue); //generate integer array
   potentialObjetives = utils.Shuffle(potentialObjetives); //randomize order
@@ -20,10 +20,10 @@ function ObjetivesGenerator(numBits, numBugs, useEvents) {
 
   potentialObjetives = utils.Shuffle(potentialObjetives); //randomize order
 
-  return { registerValues: registerValues, objetives: potentialObjetives, currentObjetive: current };
+  return { registerValues: registerValues, objetives: potentialObjetives, currentObjetive: current };*/
   
-/*const objetives = [{ ...GameCards.Objetive, value: 5 }, GameCards.OK , GameCards.ResetA, GameCards.ResetB, GameCards.ResetC, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD, GameCards.ErrorNOT, GameCards.ErrorROL, GameCards.ErrorXOR];
-  return { registerValues: [1, 2, 3], objetives: objetives, currentObjetive: { ...GameCards.Objetive, value: 4 } };*/
+const objetives = [{ ...GameCards.Objetive, value: 5 }, GameCards.OK , GameCards.ResetA, GameCards.ResetB, GameCards.ResetC, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD, GameCards.ErrorNOT, GameCards.ErrorROL, GameCards.ErrorXOR];
+  return { registerValues: [1, 2, 3], objetives: objetives, currentObjetive: { ...GameCards.Objetive, value: 4 } };
 }
 
 module.exports = ObjetivesGenerator;

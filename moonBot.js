@@ -54,16 +54,23 @@ let numBugsMissedEvents;
 let maxEnergyMissedEvents;
 let useEventsMissedEvents;
 let noGameInstanceEvents;
-let gameEventCardFound;
-let restOfEvents;
+let gameEvents;
+let engineEvents;
+let gameEventOKFound;
 
 [numBitsMissedEvents, restOfEvents] = partition(eventStream, event => event.eventType === EngineEvents.gameNumBitsMissed);
 [numBugsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNumBugsMissed);
 [maxEnergyMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameMaxEnergyMissed);
 [useEventsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameUseEventsMissed);
 [noGameInstanceEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNotCreated);
-[gameEventCardFound, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameEventFound);
+[fixoperationApplied, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.fixOperationApplied);
 
+[gameEvents, engineEvents ] = partition(restOfEvents, event => event.eventType === EngineEvents.gameEventFound);
+[gameEventOKFound, gameEvents] = partition(gameEvents, event => event.gameEvent.eventType === GameEventType.Ok);
+
+eventStream.subscribe({
+  next: (event) => console.log(event.eventType)
+});
 //on event send inlinekeyboard asking for num of bits 
 numBitsMissedEvents.subscribe({
   next(event) {
@@ -95,23 +102,35 @@ noGameInstanceEvents.subscribe({
   }
 });
 
-gameEventCardFound.subscribe({
+//engine events send message by eventType
+engineEvents.subscribe({
   next(event) {
-    let fixKeyBoard;
-    if (event.gameEvent.eventType === GameEventType.Ok) {
-      fixKeyBoard = keyBoards.fixKeyBoard(event.gameState.errors); //include inline keyBoard asking players for fix
-    }
+    sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+  }
+});
+
+//game eevnts send message by gameEvent.eventType
+gameEvents.subscribe({
+  next(event) {
+    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType]);
+  }
+});
+
+//send message including inline keyboard
+gameEventOKFound.subscribe({
+  next(event) {
+    const fixKeyBoard = keyBoards.fixKeyBoard(event.gameState.errors); //include inline keyBoard asking players for fix
     return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType], fixKeyBoard);
   }
 });
 
-//on any other event
-restOfEvents.subscribe({
+//send message and send game State
+fixoperationApplied.subscribe({
   next(event) {
-    sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
-    if (event.eventType === EngineEvents.fixOperationApplied) { //state of the game changed on inline callback query so...
-      sendGameStatus(event.playerId, event.gameState.id, event.gameState);  //show new state
-    }
+
+    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]).
+      then(()=>sendGameStatus(event.playerId, event.gameState.id, event.gameState));
+
   }
 });
 
@@ -314,7 +333,7 @@ function sendMessage(playerId, chatId, message, keyboard) {
 //send game status if not null or undefined
 async function sendGameStatus(playerId, chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
-  return await sendMessage(playerId, chatId, buildStatusMessage(gameState));
+  return sendMessage(playerId, chatId, buildStatusMessage(gameState));
 }
 
 
