@@ -35,6 +35,7 @@ const operationLocked = Symbol.for("OPERATION_LOCKED");
 const fixOperationPending = Symbol.for("FIX_OPERATION_PENDING");
 const fixOperationApplied = Symbol.for("FIX_OPERATION_APPLIED");
 const noFixLeft = Symbol.for("NO_FIX_LEFT");
+const alreadyFixed = Symbol.for("FIX_ALREADY_FIXED");
 
 module.exports.gameLost = gameLost;
 module.exports.gameWon = gameWon;
@@ -73,3 +74,4 @@ module.exports.operationLocked = operationLocked;
 module.exports.fixOperationPending = fixOperationPending;
 module.exports.fixOperationApplied = fixOperationApplied;
 module.exports.noFixLeft = noFixLeft;
+module.exports.alreadyFixed = alreadyFixed;

@@ -62,6 +62,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
 
 const fixErrorPublicApi = pipeUntilNull(
   checkNoFixLeft,
+  checkAlreadyFixed,
   fixError
 );
 
@@ -291,6 +292,17 @@ function checkNoFixLeft({ gameState, playerId }) {
   const noFixLeft = () => gameState.errors.fixPending === 0;
   if (noFixLeft()) {
     eventStream.next({ eventType: EngineEvents.noFixLeft, gameState, playerId });
+    return null;
+  }
+
+  return { gameState };
+}
+
+function checkAlreadyFixed({ gameState, playerId, error }) {
+  const alreadyFixed = () => gameState.errors[error] === false;
+
+  if (alreadyFixed()) {
+    eventStream.next({ eventType: EngineEvents.alreadyFixed, gameState, playerId });
     return null;
   }
 
