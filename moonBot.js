@@ -3,10 +3,11 @@ const { OperationCode } = require('./gameRules');
 const EngineEvents = require('./engineEvents');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
-const { filter } = require('rxjs/operators');
+const { concatMap } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules.js');
+const showState = Symbol.for("SHOW_GAME_STATE");
 //const Store = require('ioredis');
 //const redis = new Redis(6379, process.env.IP);
 /*const redis = new Redis({
@@ -54,23 +55,15 @@ let numBugsMissedEvents;
 let maxEnergyMissedEvents;
 let useEventsMissedEvents;
 let noGameInstanceEvents;
-let gameEvents;
-let engineEvents;
-let gameEventOKFound;
 
+//isolate events to react in a different way on each
 [numBitsMissedEvents, restOfEvents] = partition(eventStream, event => event.eventType === EngineEvents.gameNumBitsMissed);
 [numBugsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNumBugsMissed);
 [maxEnergyMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameMaxEnergyMissed);
 [useEventsMissedEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameUseEventsMissed);
 [noGameInstanceEvents, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.gameNotCreated);
-[fixoperationApplied, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.fixOperationApplied);
+[fixOperationApplied, restOfEvents] = partition(restOfEvents, event => event.eventType === EngineEvents.fixOperationApplied);
 
-[gameEvents, engineEvents ] = partition(restOfEvents, event => event.eventType === EngineEvents.gameEventFound);
-[gameEventOKFound, gameEvents] = partition(gameEvents, event => event.gameEvent.eventType === GameEventType.Ok);
-
-eventStream.subscribe({
-  next: (event) => console.log(event.eventType)
-});
 //on event send inlinekeyboard asking for num of bits 
 numBitsMissedEvents.subscribe({
   next(event) {
@@ -95,44 +88,46 @@ useEventsMissedEvents.subscribe({
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType], keyBoards.useEventsKeyboard(event.numBits, event.numBugs, event.maxEnergy));
   }
 });
-//on eventz where there is not game instance
+
+//on events where there is not game instance
 noGameInstanceEvents.subscribe({
   next(event) {
     return sendMessage(event.playerId, event.gameId, telegramEventMessages[event.eventType]);
   }
 });
 
-//engine events send message by eventType
-engineEvents.subscribe({
-  next(event) {
-    sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
-  }
-});
-
-//game eevnts send message by gameEvent.eventType
-gameEvents.subscribe({
-  next(event) {
-    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType]);
-  }
-});
-
-//send message including inline keyboard
-gameEventOKFound.subscribe({
-  next(event) {
-    const fixKeyBoard = keyBoards.fixKeyBoard(event.gameState.errors); //include inline keyBoard asking players for fix
-    return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType], fixKeyBoard);
-  }
-});
-
-//send message and send game State
-fixoperationApplied.subscribe({
+//send message and send gameState
+fixOperationApplied.subscribe({
   next(event) {
 
     return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]).
-      then(()=>sendGameStatus(event.playerId, event.gameState.id, event.gameState));
-
+      then(() => sendGameStatus(event.playerId, event.gameState.id, event.gameState));
   }
 });
+
+//react on the rest of the events
+restOfEvents.pipe(concatMap(event => applyEvent(event))).subscribe();
+
+function applyEvent(event) {
+
+  let keyBoard;
+  let fnc;
+
+  if (event.gameEvent) {
+    if (event.gameEvent.eventType === GameEventType.Ok) {
+      keyBoard = keyBoards.fixKeyBoard(event.gameState.errors);
+    }
+    fnc = sendMessage.bind(undefined, event.playerId, event.gameState.id, telegramEventMessages[event.gameEvent.eventType], keyBoard);
+  }
+  else if (event.eventType === showState) {
+    fnc = sendGameStatus.bind(undefined, event.playerId, event.gameState.id, event.gameState);
+  }
+  else {
+    fnc = sendMessage.bind(undefined, event.playerId, event.gameState.id, telegramEventMessages[event.eventType]);
+  }
+
+  return fnc();
+}
 
 //configure bot behaviour with regExp
 bot.onText(/^\/start$/, InitConversationRequest);
@@ -193,17 +188,20 @@ function LeaveGameRequest(msg) {
 
 async function StartGameRequest(msg) {
   const gameState = await Game.StartGame(msg.chat.id, msg.from.username); //will raise events
-  sendGameStatus(msg.from.username, msg.chat.id, gameState); //after handle all events, send game status 
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  // sendGameStatus(msg.from.username, msg.chat.id, gameState); //after handle all events, send game status 
 }
 
 async function StatusGameRequest(msg) {
   const gameState = await Game.StatusGame(msg.chat.id, msg.from.username);
-  sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function EndTurnRequest(msg) {
   const gameState = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-  sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 function CancellGameRequest(msg) {
@@ -235,46 +233,55 @@ const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xo
 
 async function IncRequest(msg, match) {
   const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied funcion above
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  // await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function DecRequest(msg, match) {
   const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RolRequest(msg, match) {
   const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function RorRequest(msg, match) {
   const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function MovRequest(msg, match) {
   const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 async function NotRequest(msg, match) {
   const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function OrRequest(msg, match) {
   const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function AndRequest(msg, match) {
   const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 async function XorRequest(msg, match) {
   const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-  await sendGameStatus(msg.from.username, msg.chat.id, gameState);
+  eventStream.next({ eventType: showState, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+  //await sendGameStatus(msg.from.username, msg.chat.id, gameState);
 }
 
 //gameState to telegram message
