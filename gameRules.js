@@ -101,6 +101,7 @@ const Rules = {
     return gameState;
   },
   ApplyFixOperation(gameState) {
+    //increase fixPending only if some system error exist
     if (Rules.SomeSystemError(gameState)) { gameState.errors.fixPending += 1; }
     return gameState;
   },

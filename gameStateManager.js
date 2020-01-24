@@ -434,9 +434,11 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
   return { gameState };
 }
 
+/*Fix error core function. OK cards > 1 could been draw (fixPending > 1) but only 1 system error could be present;
+  fixPending should decrease by 1 or reset to 0 if no more system errors left*/
 function fixError({ gameState, playerId, error }) {
   gameState.errors[error] = false;
-  gameState.errors.fixPending -= 1;
+  gameState.errors.fixPending = Rules.SomeSystemError(gameState) ? gameState.errors.fixPending - 1 : 0; 
   eventStream.next({ eventType: EngineEvents.fixOperationApplied, gameState, playerId });
   return { gameState };
 }
