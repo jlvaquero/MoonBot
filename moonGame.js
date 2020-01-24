@@ -17,8 +17,8 @@ function Game(store) {
     ));
 
   cancellGameEvents.subscribe({
-    async next(event) {
-      await gameAPI.CancelGame(event.gameState.id, event.playerId);
+    next(event) {
+       gameAPI.CancelGame(event.gameState.id, event.playerId);
       }
   });
 

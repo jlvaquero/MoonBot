@@ -120,17 +120,60 @@ const GameCards = {
     type: CardType.Bug,
     applyRules: Rules.ApplyBug
   },
-  ResetA: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetA, applyRules: Rules.ApplyRegisterReset.bind(undefined, "A") }),
-  ResetB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B") }),
-  ResetC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetC, applyRules: Rules.ApplyRegisterReset.bind(undefined, "C") }),
-  ResetD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ResetD, applyRules: Rules.ApplyRegisterReset.bind(undefined, "D") }),
-  OK: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.Ok, applyRules: Rules.ApplyFixOperation }),
-  ErrorB: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorB, applyRules: Rules.ApplyRegisterError.bind(undefined, "B") }),
-  ErrorC: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorC, applyRules: Rules.ApplyRegisterError.bind(undefined, "C") }),
-  ErrorD: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorD, applyRules: Rules.ApplyRegisterError.bind(undefined, "D") }),
-  ErrorROL: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorROL, applyRules: Rules.ApplyOperationError.bind(undefined, "ROL") }),
-  ErrorXOR: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorXOR, applyRules: Rules.ApplyOperationError.bind(undefined, "XOR") }),
-  ErrorNOT: Object.assign({}, { ...GameEventCard }, { eventType: GameEventType.ErrorNOT, applyRules: Rules.ApplyOperationError.bind(undefined, "NOT") })
+  ResetA: {
+    ...GameEventCard,
+    eventType: GameEventType.ResetA,
+    applyRules: Rules.ApplyRegisterReset.bind(undefined, "A")
+  },
+  ResetB: {
+    ...GameEventCard,
+    eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B")
+  },
+  ResetC: {
+    ...GameEventCard,
+    eventType: GameEventType.ResetC,
+    applyRules: Rules.ApplyRegisterReset.bind(undefined, "C")
+  },
+  ResetD: {
+    ...GameEventCard,
+    eventType: GameEventType.ResetD,
+    applyRules: Rules.ApplyRegisterReset.bind(undefined, "D")
+  },
+  ErrorB: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorB,
+    applyRules: Rules.ApplyRegisterError.bind(undefined, "B")
+  },
+  ErrorC: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorC,
+    applyRules: Rules.ApplyRegisterError.bind(undefined, "C")
+  },
+  ErrorD: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorD,
+    applyRules: Rules.ApplyRegisterError.bind(undefined, "D")
+  },
+  ErrorROL: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorROL,
+    applyRules: Rules.ApplyOperationError.bind(undefined, "ROL")
+  },
+  ErrorXOR: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorXOR,
+    applyRules: Rules.ApplyOperationError.bind(undefined, "XOR")
+  },
+  ErrorNOT: {
+    ...GameEventCard,
+    eventType: GameEventType.ErrorNOT,
+    applyRules: Rules.ApplyOperationError.bind(undefined, "NOT")
+  },
+  OK: {
+    ...GameEventCard,
+    eventType: GameEventType.Ok,
+    applyRules: Rules.ApplyFixOperation
+  }
 };
 
 module.exports.Rules = Rules;

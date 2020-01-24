@@ -23,6 +23,7 @@
   },
   "homepage": "https://github.com/jlvaquero/moonGame#readme",
   "dependencies": {
+    "dotenv": "^8.2.0",
     "ioredis": "^4.14.1",
     "node-telegram-bot-api": "^0.40.0",
     "rxjs": "^6.5.4",

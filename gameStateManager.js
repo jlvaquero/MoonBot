@@ -178,7 +178,7 @@ function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 }
 
 //notify operation is locked
-function checkOperationLocked({ gameState, playerId, operation}) {
+function checkOperationLocked({ gameState, playerId, operation }) {
 
   const operationLocked = () => gameState.errors[operation];
 
@@ -213,7 +213,7 @@ const objetiveAccomplisher = pipeAlways(
 function checkObjetiveAccomplished({ gameState, playerId }) {
 
   const objetiveAccomplished = () => Rules.ObjetiveIsInRegA(gameState);
-  
+
 
   if (objetiveAccomplished()) {
     eventStream.next({ eventType: EngineEvents.objetiveAccomplished, gameState, playerId });
@@ -323,7 +323,7 @@ function checkShouldEndTurn({ gameState, playerId }) {
 }
 
 //notify the game state has changed
-function raiseGameStatusChanged({ gameState , playerId}) {
+function raiseGameStatusChanged({ gameState, playerId }) {
   eventStream.next({ eventType: EngineEvents.gameStatusChanged, gameState, playerId });
   return { gameState };
 }
@@ -336,25 +336,24 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
 
   const { registerValues, objetives, currentObjetive } = ObjetivesGenerator(numBits, Rules.KeepNumBugsInRange(numBugs), useEvents);
 
-  let gameState = Object.assign(
-    { ...newGameState },
-    {
-      id: gameId,
-      numBits: Rules.KeepNumBitsRange(numBits),
-      playerList: new Array(),
-      currentObjetive: currentObjetive,
-      objetives: objetives,
-      registers: Object.assign(
-        { ...newRegisterState },
-        {
-          B: registerValues[0],
-          C: registerValues[1],
-          D: registerValues[2]
-        }),
-      rules: {
-        maxEnergy: Rules.KeepMaxEnergyInRange(maxEnergy)
-      }
-    });
+  let gameState = {
+    ...newGameState,
+    errors: {...errors },
+    id: gameId,
+    numBits: Rules.KeepNumBitsRange(numBits),
+    playerList: new Array(),
+    currentObjetive: currentObjetive,
+    objetives: objetives,
+    registers: {
+      ...newRegisterState,
+      B: registerValues[0],
+      C: registerValues[1],
+      D: registerValues[2]
+    },
+    rules: {
+      maxEnergy: Rules.KeepMaxEnergyInRange(maxEnergy)
+    }
+  };
 
   eventStream.next({ eventType: EngineEvents.gameCreated, gameState, playerId });
   gameState = joinPlayer({ gameState, playerId }).gameState;
@@ -447,16 +446,17 @@ const newGameState = {
   unresolved: 1,
   started: false,
   playerTurn: 0,
-  bugsFound: 0,
-  errors: {
-    fixPending: 0,
-    B: false,
-    C: false,
-    D: false,
-    ROL: false,
-    NOT: false,
-    XOR: false
-  }
+  bugsFound: 0
+};
+
+const errors = {
+  fixPending: 0,
+  B: false,
+  C: false,
+  D: false,
+  ROL: false,
+  NOT: false,
+  XOR: false
 };
 
 //defauls register state for new game
