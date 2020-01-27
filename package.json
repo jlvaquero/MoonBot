@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jlvaquero/moonGame.git"
+    "url": "git+https://github.com/jlvaquero/moonBot.git"
   },
   "keywords": [
     "javascript",
@@ -19,9 +19,9 @@
   "author": "jlvaquero",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jlvaquero/moonGame/issues"
+    "url": "https://github.com/jlvaquero/MoonBot/issues"
   },
-  "homepage": "https://github.com/jlvaquero/moonGame#readme",
+  "homepage": "https://github.com/jlvaquero/MoonBot",
   "dependencies": {
     "dotenv": "^8.2.0",
     "ioredis": "^4.14.1",
