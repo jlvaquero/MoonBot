@@ -154,6 +154,10 @@ function Game(store) {
       gameState = StateManager.fixError({ gameState, playerId, error }).gameState;
 
       return gameState;
+    },
+
+    async Quit() {
+      return store.quit();
     }
   };
 

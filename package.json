@@ -4,6 +4,7 @@
   "description": "tabletop moon game on telegram",
   "main": "moonBot.js",
   "scripts": {
+    "start": "node moonBot.js",
     "test": "mocha"
   },
   "repository": {

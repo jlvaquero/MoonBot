@@ -8,7 +8,9 @@ const { concatMap, map } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
-const Store = require('./memoryStore');
+const Store = require('./memoryStore'); //memory store for testing and develop
+//const Store = require('./redisStore'); //redis store recommended for production
+
 const showStateEvent = Symbol.for("SHOW_GAME_STATE");
 
 const token = process.env.MOON_BOT_TOKEN;
@@ -369,3 +371,11 @@ Operation  Target  Cost
 All 2 register operations store the result in the first register.
 "or A B" will modify register A.
 "mov A B" will copy register B value into register A.\`\`\``;
+
+process.on('SIGINT', function () {
+
+  eventStream.complete();
+  eventStream.unsubscribe();
+  Game.Quit();
+
+});

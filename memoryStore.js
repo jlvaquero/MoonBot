@@ -1,14 +1,17 @@
 ﻿const MemoryStore = {
   games: new Map(),
-  set: async function (gameId, gameState) {
+  async set(gameId, gameState) {
     this.games.set(gameId, gameState);
     return Promise.resolve(gameState.id);
   },
-  get: async function (gameId) {
+  async get(gameId) {
     return Promise.resolve(this.games.get(gameId));
   },
-  del: async function (gameId) {
+  async del(gameId) {
     return Promise.resolve(this.games.delete(gameId));
+  },
+  async quit() {
+    return Promise.resolve('OK');
   }
 };
 
