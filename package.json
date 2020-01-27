@@ -2,7 +2,7 @@
   "name": "moongame",
   "version": "1.0.0",
   "description": "tabletop moon game on telegram",
-  "main": "moon.js",
+  "main": "moonBot.js",
   "scripts": {
     "test": "mocha"
   },
