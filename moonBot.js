@@ -7,45 +7,22 @@ const TelegramBot = require('node-telegram-bot-api');
 const { concatMap, map } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
-const { Rules, GameEventType } = require('./gameRules.js');
+const { Rules, GameEventType } = require('./gameRules');
+const Store = require('./memoryStore');
 const showStateEvent = Symbol.for("SHOW_GAME_STATE");
-//const Store = require('ioredis');
-//const redis = new Redis(6379, process.env.IP);
-/*const redis = new Redis({
-port: process.env.REDIS_DB_PORT,
-host: process.env.REDIS_DB_HOST,
-password: process.env.REDIS_DB_PASSWORD
-});*/
 
-const token = () => process.env.MOON_BOT_TOKEN;
-const bot = new TelegramBot(token(), {
+const token = process.env.MOON_BOT_TOKEN;
+/*const url = process.env.MOON_BOT_PUBLIC_URL;
+const port = process.env.MOON_BOT_PORT;*/
+
+const bot = new TelegramBot(token, {
   polling: true
 });
-/*var bot = new TelegramBot(token, {
- webHook: {
-  port: port,
-  host: host
- }
-});*/
-/*bot.setWebHook(externalUrl + ':443/bot' + token);*/
 
+/*var bot = new TelegramBot(token());
+bot.setWebHook(`${url}:${port}/bot${token}`);*/
 
-const FakeStore = {
-  games: new Map(),
-  set: async function (gameId, gameState) {
-    this.games.set(gameId, gameState);
-    return Promise.resolve(gameState.id);
-  },
-  get: async function (gameId) {
-    return Promise.resolve(this.games.get(gameId));
-  },
-  del: async function (gameId) {
-    return Promise.resolve(this.games.delete(gameId));
-  }
-};
-
-
-const Game = require('./moonGame')(FakeStore);
+const Game = require('./moonGame')(Store);
 
 /*
  * Obtain game event stream and subscribe for behaviour
