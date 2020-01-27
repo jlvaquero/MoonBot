@@ -309,7 +309,7 @@ function checkAlreadyFixed({ gameState, playerId, error }) {
   return { gameState };
 }
 
-//check if an automatic end turn should happend because playes has 0 energy or there is no unresolved objetives in unresolved queue
+//check if an automatic end turn should happend because player has 0 energy or there is no unresolved objetives in unresolved queue
 function checkShouldEndTurn({ gameState, playerId }) {
 
   const noUnresolvedLeft = Rules.NoUnresolvedLeft(gameState);
@@ -451,6 +451,7 @@ const newGameState = {
   bugsFound: 0
 };
 
+//default game state errors for new game
 const errors = {
   fixPending: 0,
   B: false,

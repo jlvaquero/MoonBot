@@ -59,6 +59,9 @@ i.e.:
 
 const slackEventMessages = {
   [GameEvents.gameLost]: "yada yada yada"
-}*/
+}
+
+module.exports.slackEventMessages = Object.assign(telegramEventMessages, slackEventMessages ) //change just the slack custom messages and keep the rest
+*/
 
 module.exports.telegramEventMessages = telegramEventMessages;

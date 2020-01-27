@@ -85,7 +85,7 @@ const Rules = {
     return utils.Clamp(numBugs, 0, 2);
   },
   ApplyBug(gameState) {
-    gameState.bugsFound = +1;
+    gameState.bugsFound += 1;
     return gameState;
   },
   ApplyRegisterReset(register, gameState) {
