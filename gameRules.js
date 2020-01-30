@@ -57,14 +57,14 @@ const Rules = {
   IsPlayerTurn(gameState, playerId) { return this.CurrentPlayer(gameState).name === playerId; },
   PlayerIsInGame(gameState, playerId) { return gameState.playerList.some((player) => player.name === playerId); },
   NoPlayersLeft(gameState) { return gameState.playerList.length < 1; },
-  MaxUnresolvedReached(gameState) { return gameState.unresolved + gameState.bugsFound === this.MaxUnresolvedValue; },
+  MaxUnresolvedReached(gameState) { return gameState.unresolved + gameState.bugsFound >= this.MaxUnresolvedValue; },
   NoObjetivesLeft(gameState) { return gameState.objetives.length === 0 && !gameState.currentObjetive; },
   EnoughEnergyFor(gameState, operation) { return this.CurrentPlayer(gameState).energy >= this.OperationCost(operation); },
   ObjetiveIsInRegA(gameState) { return gameState.registers.A === gameState.currentObjetive.value; },
   NoEnergyLeft(gameState) { return this.CurrentPlayer(gameState).energy === 0; },
-  NoUnresolvedLeft(gameState) { return gameState.unresolved === 0; },
+  NoUnresolvedLeft(gameState) { return gameState.unresolved <= 0; },
   OperationCost(op) { return OperationCost[op]; },
-  LastPlayerPlaying(gameState) { return gameState.playerTurn === gameState.playerList.length - 1; },
+  LastPlayerPlaying(gameState) { return gameState.playerTurn >= gameState.playerList.length - 1; },
   SomeSystemError(gameState) {
     return gameState.errors.B ||
       gameState.errors.C ||

@@ -156,7 +156,8 @@ function Game(store) {
       return gameState;
     },
 
-    async Quit() {
+    Quit() {
+      eventStream.unsubscribe();
       return store.quit();
     }
   };

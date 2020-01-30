@@ -93,7 +93,9 @@ function notify(messageData) {
   return messageData.sendStatus ? notifyGameState() : notifyMessage();
 }
 
-//react on the rest of the events
+/*react on the rest of the events
+concatMap create a observable for each async execution and subscribe to it before continue to the next async execution
+this ensures the order of the messages sent to the chat.*/
 restOfEvents.pipe(map(toMessage)).pipe(concatMap(messageData => notify(messageData))).subscribe();
 
 function toMessage(event) {
@@ -212,7 +214,7 @@ const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.an
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
 async function IncRequest(msg, match) {
-  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied funcion above
+  const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied functions above
   if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
 }
 
@@ -373,9 +375,7 @@ All 2 register operations store the result in the first register.
 "mov A B" will copy register B value into register A.\`\`\``;
 
 process.on('SIGINT', function () {
-
+  Game.Quit();
   eventStream.complete();
   eventStream.unsubscribe();
-  Game.Quit();
-
 });
