@@ -38,6 +38,6 @@ NOTES for PRODUCTION enviroment:
 
   Use webhooks instead of long polling.        https://github.com/jlvaquero/MoonBot/blob/18fd86600cd0b7bf6af6b31c07b157a2834c9328/moonBot.js#L24
   
-  Use memcache, redis or some fast persistence store instead of inMemroy store.
+  Use memcache, redis or some fast persistence store instead of inMemory store.
   
   Use a PROCESS MANAGER like https://pm2.keymetrics.io/ to daemonize, monitor and cluster the bot.
