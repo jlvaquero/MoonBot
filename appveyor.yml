@@ -19,5 +19,6 @@ test_script:
 
 # Don't actually build.
 build:
-  -ps: $wc = New-Object 'System.Net.WebClient'
-  -ps: $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\xunit-results.xml))
+  - ps: >-
+    $wc = New-Object 'System.Net.WebClient'
+    $wc.UploadFile("https://ci.appveyor.com/api/testresults/xunit/$($env:APPVEYOR_JOB_ID)", (Resolve-Path .\xunit-results.xml))
