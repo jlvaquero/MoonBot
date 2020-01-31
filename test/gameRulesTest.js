@@ -450,5 +450,84 @@ describe('game rules', function () {
    
   });
 
+  describe('apply register error game card', function () {
+    let gameState = {
+    };
 
+    it('should set register error to true', function () {
+      gameState.errors = {
+        B: false,
+        C: false,
+        D: false
+      };
+      gameState = ruleModule.Rules.ApplyRegisterError('B', gameState);
+      assert.equal(gameState.errors.B, true);
+      assert.equal(gameState.errors.C, false);
+      assert.equal(gameState.errors.D, false);
+    });
+  });
+
+  describe('apply operation error game card', function () {
+    let gameState = {
+    };
+
+    it('should set register error to true', function () {
+      gameState.errors = {
+        ROL: false,
+        NOT: false,
+        XOR: false
+      };
+      gameState = ruleModule.Rules.ApplyRegisterError('NOT', gameState);
+      assert.equal(gameState.errors.ROL, false);
+      assert.equal(gameState.errors.NOT, true);
+      assert.equal(gameState.errors.XOR, false);
+    });
+  });
+
+  describe('apply fix error game card', function () {
+    let gameState = {
+    };
+
+    it('should increase fixPending on any error present', function () {
+      gameState.errors = {
+        B: false,
+        C: false,
+        D: false,
+        ROL: true,
+        NOT: false,
+        XOR: false,
+        fixPending: 0
+      };
+      gameState = ruleModule.Rules.ApplyFixOperation(gameState);
+      assert.equal(gameState.errors.fixPending, 1);
+    });
+
+    it('should increase fixPending on any error present', function () {
+      gameState.errors = {
+        B: false,
+        C: false,
+        D: false,
+        ROL: true,
+        NOT: false,
+        XOR: false,
+        fixPending: 1
+      };
+      gameState = ruleModule.Rules.ApplyFixOperation(gameState);
+      assert.equal(gameState.errors.fixPending, 2);
+    });
+
+    it('should not increase fixPending because not error present', function () {
+      gameState.errors = {
+        B: false,
+        C: false,
+        D: false,
+        ROL: false,
+        NOT: false,
+        XOR: false,
+        fixPending: 0
+      };
+      gameState = ruleModule.Rules.ApplyFixOperation(gameState);
+      assert.equal(gameState.errors.fixPending, 0);
+    });
+  });
 });

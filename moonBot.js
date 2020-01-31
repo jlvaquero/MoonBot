@@ -94,7 +94,7 @@ function notify(messageData) {
 }
 
 /*react on the rest of the events
-concatMap create a observable for each async execution and subscribe to it before continue to the next async execution
+concatMap creates a observable for each async execution and subscribe to it before continue to the next async execution
 this ensures the order of the messages sent to the chat.*/
 restOfEvents.pipe(map(toMessage)).pipe(concatMap(messageData => notify(messageData))).subscribe();
 
