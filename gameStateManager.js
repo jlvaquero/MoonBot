@@ -118,7 +118,7 @@ function checkAlreadyJoined({ gameState, playerId }) {
   return { gameState };
 }
 
-//check player not joined to just allow join
+//check player not joined to not allow ingame commands
 function checkNotJoined({ gameState, playerId }) {
   const alreadyJoined = () => Rules.PlayerIsInGame(gameState, playerId);
 

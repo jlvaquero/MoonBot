@@ -20,6 +20,9 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
     <Content Include=".env" />
+    <Content Include="appveyor.yml">
+      <SubType>Code</SubType>
+    </Content>
     <Content Include="package-lock.json" />
     <Content Include="package.json" />
     <Content Include="gameStateManager.js" />
@@ -53,6 +56,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="test\gameRulesTest.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="test\gameStateTest.js">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
