@@ -16,6 +16,8 @@ test_script:
   - npm --version
   # run tests
   - npm test
+
+after_test:
 - ps: >-
     $wc = New-Object 'System.Net.WebClient'
 
