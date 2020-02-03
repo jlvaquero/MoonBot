@@ -167,7 +167,7 @@ function checkGameLost({ gameState, playerId }) {
 //notify operation register is locked
 function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 
-  const registerLocked = () => gameState.errors[cpu_reg1] || (cpu_reg2 ? gameState.errors[cpu_reg2] : false);
+  const registerLocked = () => gameState.errors[cpu_reg1] || (cpu_reg2 ? gameState.errors[cpu_reg2] : false); //moving this code to gameRules has more sense
 
   if (registerLocked()) {
     eventStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
@@ -180,7 +180,7 @@ function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 //notify operation is locked
 function checkOperationLocked({ gameState, playerId, operation }) {
 
-  const operationLocked = () => gameState.errors[operation];
+  const operationLocked = () => gameState.errors[operation]; //moving this code to gameRules has more sense
 
   if (operationLocked()) {
     eventStream.next({ eventType: EngineEvents.operationLocked, gameState, playerId });
