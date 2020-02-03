@@ -1,4 +1,4 @@
-# MoonBot
+# MoonBot [![Build status](https://ci.appveyor.com/api/projects/status/wnv648eatjtrfsl8?svg=true)](https://ci.appveyor.com/project/jlvaquero/moonbot)
 Bot to play Moon (1110011) tabletop solo/cooperative in telegram.
 
 The game engine is platform agnostic so it can be used to port the game into another platform (i.e. slack) or even build a primitive GUI for it (i.e. HTML 5)

@@ -29,6 +29,7 @@
     <Content Include="moonBot.js" />
     <Content Include="moonGame.js" />
     <Content Include="objetives.js" />
+    <Content Include="README.md" />
     <Content Include="registerOperations.js" />
     <Content Include="utils.js" />
     <Content Include="test\registerOperationsTest.js" />
