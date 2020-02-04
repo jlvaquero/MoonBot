@@ -21,7 +21,8 @@ describe('gameState behaviour', function () {
 
     it('should return {gameState} on started false', function () {
       gameState.started = false;
-      assert.deepStrictEqual(checkGameWasStarted({ gameState, playerId}).gameState, gameState);
+      const expected = { ...gameState};
+      assert.deepStrictEqual(checkGameWasStarted({ gameState, playerId }).gameState, expected);
     });
     it('should return null on started true', function () {
       gameState.started = true;
@@ -35,7 +36,8 @@ describe('gameState behaviour', function () {
 
     it('should return {gameState} on started true', function () {
       gameState.started = true;
-      assert.deepStrictEqual(checkGameWasNotStarted({ gameState, playerId }).gameState, gameState);
+      const expected = { ...gameState };
+      assert.deepStrictEqual(checkGameWasNotStarted({ gameState, playerId }).gameState, expected);
     });
     it('should return null on started false', function () {
       gameState.started = false;
@@ -53,11 +55,13 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} if user not joined', function () {
       gameState.playerList = [{ name: 'anotherUser' }];
-      assert.deepStrictEqual(checkAlreadyJoined({ gameState, playerId }).gameState, gameState);
+      const expected = { playerList: [...gameState.playerList] };
+      assert.deepStrictEqual(checkAlreadyJoined({ gameState, playerId }).gameState, expected);
     });
     it('should return {gameState} if playerList is empty', function () {
       gameState.playerList = [];
-      assert.deepStrictEqual(checkAlreadyJoined({ gameState, playerId }).gameState, gameState);
+      const expected = { playerList: [...gameState.playerList] };
+      assert.deepStrictEqual(checkAlreadyJoined({ gameState, playerId }).gameState, expected);
     });
   });
   describe('checkNotJoined', function () {
@@ -71,7 +75,8 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} if user is joined', function () {
       gameState.playerList = [{ name: playerId }];
-      assert.deepStrictEqual(checkNotJoined({ gameState, playerId }).gameState, gameState);
+      const expected = { playerList: [...gameState.playerList] };
+      assert.deepStrictEqual(checkNotJoined({ gameState, playerId }).gameState, expected);
     });
     it('should return null if playerList is empty', function () {
       gameState.playerList = [];
@@ -89,7 +94,8 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} if any player is joined', function () {
       gameState.playerList = [{ name: playerId }];
-      assert.deepStrictEqual(checkNoPlayersLeft({ gameState, playerId }).gameState, gameState);
+      const expected = { playerList: [...gameState.playerList] };
+      assert.deepStrictEqual(checkNoPlayersLeft({ gameState, playerId }).gameState, expected);
     });
   });
   describe('checkIsNotPlayerTurn', function () {
@@ -104,7 +110,9 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} if is player turn', function () {
       gameState.playerList = [{ name: playerId }];
-      assert.deepStrictEqual(checkIsNotPlayerTurn({ gameState, playerId }).gameState, gameState);
+      let expected = { ...gameState };
+      expected.playerList = [...gameState.playerList];
+      assert.deepStrictEqual(checkIsNotPlayerTurn({ gameState, playerId }).gameState, expected);
     });
   });
   describe('checkGameLost', function () {
@@ -134,19 +142,23 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} game was not lost with 0 bugs and 0 unresolved', function () {
       gameState = { unresolved: 0, bugsFound: 0 };
-      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, gameState);
+      const expected = { ...gameState };
+      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, expected);
     });
     it('should return {gameState} game was not lost with 2 bugs and 0 unresolved', function () {
       gameState = { unresolved: 0, bugsFound: 2 };
-      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, gameState);
+      const expected = { ...gameState };
+      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, expected);
     });
     it('should return {gameState} game was not lost with 2 bugs and 1 unresolved', function () {
       gameState = { unresolved: 1, bugsFound: 2 };
-      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, gameState);
+      const expected = { ...gameState };
+      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, expected);
     });
     it('should return {gameState} game was not lost with 2 bugs and 3 unresolved', function () {
       gameState = { unresolved: 1, bugsFound: 2 };
-      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, gameState);
+      const expected = { ...gameState };
+      assert.deepStrictEqual(checkGameLost({ gameState, playerId }).gameState, expected);
     });
   });
   describe('checkRegisterLocked', function () {
@@ -187,13 +199,19 @@ describe('gameState behaviour', function () {
         B: false,
         C: false
       };
-      assert.deepStrictEqual(checkRegisterLocked({ gameState, playerId, cpu_reg1: 'B', cpu_reg2: 'C' }).gameState, gameState);
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+      assert.deepStrictEqual(checkRegisterLocked({ gameState, playerId, cpu_reg1: 'B', cpu_reg2: 'C' }).gameState, expected);
     });
     it('should return {ganmeState} if reg1 is not locked and reg2 is not present', function () {
       gameState.errors = {
         B: false
       };
-      assert.deepStrictEqual(checkRegisterLocked({ gameState, playerId, cpu_reg1: 'B', undefined }).gameState, gameState);
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+      assert.deepStrictEqual(checkRegisterLocked({ gameState, playerId, cpu_reg1: 'B', undefined }).gameState, expected);
     });
   });
   describe('checkOperationLocked', function () {
@@ -212,7 +230,10 @@ describe('gameState behaviour', function () {
       gameState.errors = {
         AND: false
       };
-      assert.deepStrictEqual(checkOperationLocked({ gameState, playerId, operation: 'AND' }).gameState, gameState);
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+      assert.deepStrictEqual(checkOperationLocked({ gameState, playerId, operation: 'AND' }).gameState, expected);
     });
   });
   describe('checkNotEnoughEnergy', function () {
@@ -230,11 +251,144 @@ describe('gameState behaviour', function () {
     });
     it('should return {gameState} if player has more than the energy needed to run the requested operation', function () {
       gameState.playerList[0].energy = 3;
-      assert.deepStrictEqual(checkNotEnoughEnergy({ gameState, playerId, cost: 1 }).gameState, gameState);
+      const expected = {
+        ...gameState
+      };
+      expected.playerList = [...gameState.playerList];
+
+      assert.deepStrictEqual(checkNotEnoughEnergy({ gameState, playerId, cost: 1 }).gameState, expected);
     });
     it('should return {gameState} if player has just the energy to run the requested operation', function () {
       gameState.playerList[0].energy = 1;
+      const expected = {
+        ...gameState
+      };
+      expected.playerList = [...gameState.playerList];
       assert.deepStrictEqual(checkNotEnoughEnergy({ gameState, playerId, cost: 1 }).gameState, gameState);
     });
   });
+  describe('checkGameWon', function () {
+
+    const checkGameWon = gameStateModule.__get__("checkGameWon");
+    let gameState = {};
+
+    it('should return null if player has won the game', function () {
+      gameState.objetives = [];
+      gameState.currentObjetive = undefined;
+
+      assert.equal(checkGameWon({ gameState, playerId }), null);
+    });
+    it('should return {gameState} if objetive list is empty but the last objetive is in currentObjetive', function () {
+      gameState.objetives = [];
+      gameState.currentObjetive = 1;
+
+      const expected = {
+        ...gameState
+      };
+      expected.objetives = [...gameState.objetives];
+
+      assert.deepStrictEqual(checkGameWon({ gameState, playerId }).gameState, expected);
+    });
+    it('should return {gameState} if objetive list is not empty', function () {
+      gameState.objetives = [1];
+      gameState.currentObjetive = undefined;
+
+      const expected = {
+        ...gameState
+      };
+      expected.objetives = [...gameState.objetives];
+
+      assert.deepStrictEqual(checkGameWon({ gameState, playerId }).gameState, expected);
+    });
+  });
+  describe('checkFixPending', function () {
+
+    const checkFixPending = gameStateModule.__get__("checkFixPending");
+    let gameState = {
+      errors: {  }
+    };
+
+    it('should return null if any fix (> 0) is pending of confirmation', function () {
+      gameState.errors.fixPending = 1;
+      assert.equal(checkFixPending({ gameState, playerId }), null);
+    });
+    it('should return {gameState} if no fix pending left ( <=0 )', function () {
+      gameState.errors.fixPending = 0;
+
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+     
+      assert.deepStrictEqual(checkFixPending({ gameState, playerId }).gameState, expected);
+    });
+  });
+  describe('checkNoFixLeft', function () {
+
+    const checkNoFixLeft = gameStateModule.__get__("checkNoFixLeft");
+    let gameState = {
+      errors: {}
+    };
+
+    it('should return null if there is not any fix (<= 0) pending', function () {
+      gameState.errors.fixPending = 0;
+      assert.equal(checkNoFixLeft({ gameState, playerId }), null);
+    });
+    it('should return {gameState} if there is any fix pending ( > 0 )', function () {
+      gameState.errors.fixPending = 1;
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+      assert.deepStrictEqual(checkNoFixLeft({ gameState, playerId }).gameState, expected);
+    });
+  });
+  describe('checkAlreadyFixed', function () {
+
+    const checkAlreadyFixed = gameStateModule.__get__("checkAlreadyFixed");
+    let gameState = {
+      errors: {}
+    };
+
+    it('should return null if the target error to fix not exist', function () {
+      gameState.errors.B = false;
+      assert.equal(checkAlreadyFixed({ gameState, playerId, error: 'B' }), null);
+    });
+    it('should return {gameState} if the target error to fix exist', function () {
+      gameState.errors.B = true;
+      const expected = {
+        errors: { ...gameState.errors }
+      };
+      assert.deepStrictEqual(checkAlreadyFixed({ gameState, playerId, error: 'B' }).gameState, expected);
+    });
+  });
+  describe('checkShouldEndTurn', function () {
+
+    const checkShouldEndTurn = gameStateModule.__get__("checkShouldEndTurn");
+    let gameState = {};
+
+    it('should return unmodified {gameState} if player has energy (> 0) and there is unresolved objetives in slot', function () {
+      gameState.unresolved = 1;
+      gameState.playerList = [{ name: playerId, energy: 3 }];
+      gameState.playerTurn = 0;
+
+      expected = { ...gameState };
+      expected.playerList = [...gameState.playerList];
+
+      assert.deepStrictEqual(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
+    });
+    it('should return {gameState} end turn (playerTurn + 1) when current player energy <= 0', function () {
+      gameState.unresolved = 1;
+      gameState.playerList = [{ name: playerId, energy: 0 }, { name: 'anotherPlayer', energy: 3 }];
+      gameState.playerTurn = 0;
+
+      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState.playerTurn, 1);
+    });
+    it('should return {gameState} end turn (playerTurn + 1) when unresolved slots are empty', function () {
+      gameState.unresolved = 0;
+      gameState.playerList = [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }];
+      gameState.playerTurn = 0;
+
+      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState.playerTurn, 1);
+    });
+  });
+
 });
