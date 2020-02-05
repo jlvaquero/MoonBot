@@ -166,8 +166,7 @@ function checkGameLost({ gameState, playerId }) {
 
 //notify operation register is locked
 function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
-
-  const registerLocked = () => gameState.errors[cpu_reg1] || (cpu_reg2 ? gameState.errors[cpu_reg2] : false); //moving this code to gameRules has more sense
+  const registerLocked = () => Rules.ElementLocked(gameState, cpu_reg1) || (cpu_reg2 ? Rules.ElementLocked(gameState, cpu_reg2) : false);
 
   if (registerLocked()) {
     eventStream.next({ eventType: EngineEvents.registerLocked, gameState, playerId });
@@ -180,7 +179,7 @@ function checkRegisterLocked({ gameState, playerId, cpu_reg1, cpu_reg2 }) {
 //notify operation is locked
 function checkOperationLocked({ gameState, playerId, operation }) {
 
-  const operationLocked = () => gameState.errors[operation]; //moving this code to gameRules has more sense
+  const operationLocked = () => Rules.ElementLocked(gameState, operation);
 
   if (operationLocked()) {
     eventStream.next({ eventType: EngineEvents.operationLocked, gameState, playerId });
@@ -341,7 +340,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
     errors: {...errors },
     id: gameId,
     numBits: Rules.KeepNumBitsRange(numBits),
-    playerList: new Array(),
+    playerList: new Array(), //TODO: a linked list would be a better structure to manage players and turns
     currentObjetive: currentObjetive,
     objetives: objetives,
     registers: {
@@ -385,9 +384,9 @@ function leavePlayer({ gameState, playerId }) {
   };
   const nexPlayerTurn = () => (playerPosition() < gameState.playerTurn) ? gameState.playerTurn - 1 : gameState.playerTurn;
 
-  gameState.playerList = gameState.playerList.filter(playerLeaving);
   gameState.playerTurn = nexPlayerTurn();
-
+  gameState.playerList = gameState.playerList.filter(playerLeaving);
+ 
   eventStream.next({ eventType: EngineEvents.playerLeft, gameState, playerId });
 
   return { gameState };
@@ -404,14 +403,15 @@ function endTurn({ gameState, playerId }) {
 
   const endRound = () => Rules.LastPlayerPlaying(gameState);
   const resetEnergy = () => gameState.playerList.map((playerState) => { playerState.energy = gameState.rules.maxEnergy; return playerState; });
+  const noUnresolvedLeft = () => Rules.NoUnresolvedLeft(gameState);
 
   eventStream.next({ eventType: EngineEvents.turnEnded, gameState, playerId });
 
   if (!endRound()) {
     gameState.playerTurn += 1;
-    //end turn was because unresolved = 0
-    //new cards was drawn so unresolved has to reset to 1
-    if (Rules.NoUnresolvedLeft) { gameState.unresolved = 1; } 
+    //if end turn was because unresolved = 0
+    //new cards was drawn so unresolved has to reset to 1 even if not endRound
+    if (noUnresolvedLeft()) { gameState.unresolved = 1; } 
   }
   else {
     gameState.playerTurn = 0;

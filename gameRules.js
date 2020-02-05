@@ -65,6 +65,7 @@ const Rules = {
   NoUnresolvedLeft(gameState) { return gameState.unresolved <= 0; },
   OperationCost(op) { return OperationCost[op]; },
   LastPlayerPlaying(gameState) { return gameState.playerTurn >= gameState.playerList.length - 1; },
+  ElementLocked(gameState, element) { return gameState.errors[element]; },
   SomeSystemError(gameState) {
     return gameState.errors.B ||
       gameState.errors.C ||

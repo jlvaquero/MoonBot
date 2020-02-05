@@ -402,5 +402,30 @@ describe('gameState behaviour', function () {
       assert.deepStrictEqual(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
     });
   });
+  describe('leavePlayer', function () {
 
+    const leavePlayer = gameStateModule.__get__("leavePlayer");
+    let gameState = { };
+
+    it('should return {gameState} without leave player and unmodified playerTurn when left player is after current player', function () {
+      gameState.playerList = [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }, { name: 'justAnotherPlayer', energy: 3 }];
+      gameState.playerTurn = 1;
+
+      const expected = {
+        playerTurn: 1,
+        playerList: [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }]
+      };
+      assert.deepStrictEqual(leavePlayer({ gameState, playerId: 'justAnotherPlayer' }).gameState, expected);
+    });
+    it('should return {gameState} without leave player and playerTurn - 1 when left player is before current player', function () {
+      gameState.playerList = [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }, { name: 'justAnotherPlayer', energy: 3 }];
+      gameState.playerTurn = 1;
+
+      const expected = {
+        playerTurn: 0,
+        playerList: [{ name: 'anotherPlayer', energy: 3 }, { name: 'justAnotherPlayer', energy: 3 }]
+      };
+      assert.deepStrictEqual(leavePlayer({ gameState, playerId }).gameState, expected);
+    });
+  });
 });
