@@ -5,7 +5,7 @@
   "main": "moonBot.js",
   "scripts": {
     "start": "node moonBot.js",
-    "test": "mocha --reporter xunit --reporter-option output=.\\xunit-results.xml"
+    "test": "mocha"
   },
   "repository": {
     "type": "git",

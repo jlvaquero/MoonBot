@@ -375,19 +375,31 @@ describe('gameState behaviour', function () {
 
       assert.deepStrictEqual(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
     });
-    it('should return {gameState} end turn (playerTurn + 1) when current player energy <= 0', function () {
+    it('should return {gameState} end turn  when current player energy <= 0', function () {
       gameState.unresolved = 1;
       gameState.playerList = [{ name: playerId, energy: 0 }, { name: 'anotherPlayer', energy: 3 }];
       gameState.playerTurn = 0;
 
-      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState.playerTurn, 1);
+      const expected = {
+        unresolved: 1,
+        playerList: [...gameState.playerList],
+        playerTurn: 1 //increase player turn
+      };
+      
+      assert.deepStrictEqual(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
     });
-    it('should return {gameState} end turn (playerTurn + 1) when unresolved slots are empty', function () {
+    it('should return {gameState} end turn when unresolved slots are empty', function () {
       gameState.unresolved = 0;
       gameState.playerList = [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }];
       gameState.playerTurn = 0;
 
-      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState.playerTurn, 1);
+      const expected = {
+        unresolved: 1,
+        playerList: [...gameState.playerList],
+        playerTurn: 1
+      };
+
+      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
     });
   });
 
