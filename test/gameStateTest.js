@@ -399,7 +399,7 @@ describe('gameState behaviour', function () {
         playerTurn: 1
       };
 
-      assert.equal(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
+      assert.deepStrictEqual(checkShouldEndTurn({ gameState, playerId }).gameState, expected);
     });
   });
 

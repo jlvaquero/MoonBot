@@ -409,6 +409,9 @@ function endTurn({ gameState, playerId }) {
 
   if (!endRound()) {
     gameState.playerTurn += 1;
+    //end turn was because unresolved = 0
+    //new cards was drawn so unresolved has to reset to 1
+    if (Rules.NoUnresolvedLeft) { gameState.unresolved = 1; } 
   }
   else {
     gameState.playerTurn = 0;
