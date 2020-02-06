@@ -14,15 +14,24 @@ const Store = require('./memoryStore'); //memory store for testing and develop
 const showStateEvent = Symbol.for("SHOW_GAME_STATE");
 
 const token = process.env.MOON_BOT_TOKEN;
-/*const url = process.env.MOON_BOT_PUBLIC_URL;
-const port = process.env.MOON_BOT_PORT;*/
+/*const public_url = process.env.MOON_BOT_PUBLIC_URL;
+  const public_port = process.env.MOON_BOT_PUBLIC_PORT;
+const bind_port = process.env.MOON_BOT_BIND_PORT;
+const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
+const options = {
+  webHook: {
+    bind_port,
+    bind_host
+  }
+};
+var bot = new TelegramBot(token, options);
+bot.setWebHook(`${public_url}:${public_port}/bot${token}`);*/
 
 const bot = new TelegramBot(token, {
   polling: true
 });
 
-/*var bot = new TelegramBot(token());
-bot.setWebHook(`${url}:${port}/bot${token}`);*/
+
 
 const Game = require('./moonGame')(Store);
 
