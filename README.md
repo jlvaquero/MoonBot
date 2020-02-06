@@ -17,9 +17,13 @@ How to deploy your own moonBot:
 
     #MOON_BOT_TOKEN=0123456789:FaKetOkEn - Mandatory. Uncomment and set the bot token given to you by @botFather.
     
-    #MOON_BOT_PUBLIC_URL=https://yourDomainName - Needed for bot webhook
+    #MOON_BOT_PUBLIC_URL=https://yourDomainName - Needed for bot webhook, public url to your domain
     
-    #MOON_BOT_PORT=443 - Needed for bot webhook
+    #MMOON_BOT_PUBLIC_PORT=443 - Needed for bot webhook, public port to your domain
+    
+    #MOON_BOT_BIND_PORT = 8443 - Needed for bot webhook, port where the bot listen in the machine
+    
+    #MOON_BOT_BIND_HOST_IP = 0.0.0.0 - Needed for bot webhook, IP where the bot listen in the machine
     
     #REDIS_DB_PORT=6379 - If you want to use redis store instead of inMemoryStore (recommended)
     
