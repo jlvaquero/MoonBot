@@ -7,13 +7,13 @@ password: process.env.REDIS_DB_PASSWORD
 });
 
 const RedisStore = {
- set: async function (gameId, gameState) {
+ async set(gameId, gameState) {
    return await redis.set(gameId, JSON.stringify(gameState));
   },
-  get: async function (gameId) {
+   async get(gameId) {
     return JSON.parse(await redis.get(gameId));
   },
-  del: async function (gameId) {
+  async del(gameId) {
     return await redis.del(gameId);
   }
 };

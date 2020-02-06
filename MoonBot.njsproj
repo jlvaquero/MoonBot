@@ -19,7 +19,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
-    <Content Include=".env" />
+    <Content Include="configExample\.env" />
     <Content Include="appveyor.yml">
       <SubType>Code</SubType>
     </Content>
@@ -35,6 +35,7 @@
     <Content Include="test\registerOperationsTest.js" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="configExample\" />
     <Folder Include="test" />
   </ItemGroup>
   <ItemGroup>
