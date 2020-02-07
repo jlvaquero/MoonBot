@@ -19,6 +19,7 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Content Include=".env" />
     <Content Include="configExample\.env" />
     <Content Include="appveyor.yml">
       <SubType>Code</SubType>

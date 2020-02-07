@@ -8,31 +8,54 @@ const { concatMap, map } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
-const Store = require('./memoryStore'); //memory store for testing and develop
-//const Store = require('./redisStore'); //redis store recommended for production
 
-const showStateEvent = Symbol.for("SHOW_GAME_STATE");
 
 const token = process.env.MOON_BOT_TOKEN;
-/*const public_url = process.env.MOON_BOT_PUBLIC_URL;
-  const public_port = process.env.MOON_BOT_PUBLIC_PORT;
+const useWebHook = process.env.MOON_BOT_USE_WEBHOOK;
+const public_url = process.env.MOON_BOT_PUBLIC_URL;
+const public_port = process.env.MOON_BOT_PUBLIC_PORT;
 const bind_port = process.env.MOON_BOT_BIND_PORT;
 const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
-const options = {
-  webHook: {
-    bind_port,
-    bind_host
-  }
-};
-var bot = new TelegramBot(token, options);
-bot.setWebHook(`${public_url}:${public_port}/bot${token}`);*/
+const use_redis = process.env.MOON_BOT_USE_REDIS;
 
-const bot = new TelegramBot(token, {
-  polling: true
-});
+let Store; 
 
+if (use_redis) {
+  Store = require('./redisStore'); //redis store recommended for production
+}
+else {
+  Store = require('./memoryStore'); //memory store for testing and develop
+}
 
+let options;
+let initBot;
 
+if (useWebHook) {
+
+  initBot = () => {
+    options = {
+      webHook: {
+        bind_port,
+        bind_host
+      }
+    };
+    const bot = new TelegramBot(token, options);
+    bot.setWebHook(`${public_url}:${public_port}/bot${token}`);
+    return bot;
+  };
+}
+else {
+  initBot = () => {
+    options = {
+      polling: true
+    };
+    return new TelegramBot(token, options);
+  };
+} 
+
+const bot = initBot();
+
+const showStateEvent = Symbol.for("SHOW_GAME_STATE");
 const Game = require('./moonGame')(Store);
 
 /*
