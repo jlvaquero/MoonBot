@@ -248,7 +248,7 @@ function obtainNextObjetive({ gameState, playerId }) {
 //apply the card rules and raise related events
 function applyCardRules(gameState, card, playerId) {
 
-  gameState = card.applyRules(gameState);
+  gameState = Rules.ApplyCardRule(gameState, card);
 
   switch (card.type) {
     case CardType.Bug:

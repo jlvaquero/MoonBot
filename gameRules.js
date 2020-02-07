@@ -106,10 +106,28 @@ const Rules = {
     if (Rules.SomeSystemError(gameState)) { gameState.errors.fixPending += 1; }
     return gameState;
   },
+  ApplyCardRule(gameState, card) {
+    return CardRules[card.eventType](gameState);
+  },
+
   MaxNumObjetives: 12,
   MaxUnresolvedValue: 6
 };
 
+const CardRules = {
+  [CardType.Bug]: Rules.ApplyBug,
+  [GameEventType.ResetA]: Rules.ApplyRegisterReset.bind(undefined, "A"),
+  [GameEventType.ResetB]: Rules.ApplyRegisterReset.bind(undefined, "B"),
+  [GameEventType.ResetC]: Rules.ApplyRegisterReset.bind(undefined, "C"),
+  [GameEventType.ResetD]: Rules.ApplyRegisterReset.bind(undefined, "D"),
+  [GameEventType.ErrorB]: Rules.ApplyRegisterError.bind(undefined, "B"),
+  [GameEventType.ErrorC]: Rules.ApplyRegisterError.bind(undefined, "C"),
+  [GameEventType.ErrorD]: Rules.ApplyRegisterError.bind(undefined, "D"),
+  [GameEventType.ErrorROL]: Rules.ApplyOperationError.bind(undefined, "ROL"),
+  [GameEventType.ErrorXOR]: Rules.ApplyOperationError.bind(undefined, "XOR"),
+  [GameEventType.ErrorNOT]: Rules.ApplyOperationError.bind(undefined, "NOT"),
+  [GameEventType.Ok]: Rules.ApplyFixOperation
+};
 
 const GameEventCard = {
   type: CardType.Event
@@ -120,61 +138,51 @@ const GameCards = {
   Objetive: { type: CardType.Objetive },
   Bug: {
     type: CardType.Bug,
-    applyRules: Rules.ApplyBug
+    eventType: CardType.Bug
   },
   ResetA: {
     ...GameEventCard,
-    eventType: GameEventType.ResetA,
-    applyRules: Rules.ApplyRegisterReset.bind(undefined, "A")
+    eventType: GameEventType.ResetA
   },
   ResetB: {
     ...GameEventCard,
-    eventType: GameEventType.ResetB, applyRules: Rules.ApplyRegisterReset.bind(undefined, "B")
+    eventType: GameEventType.ResetB
   },
   ResetC: {
     ...GameEventCard,
-    eventType: GameEventType.ResetC,
-    applyRules: Rules.ApplyRegisterReset.bind(undefined, "C")
+    eventType: GameEventType.ResetC
   },
   ResetD: {
     ...GameEventCard,
-    eventType: GameEventType.ResetD,
-    applyRules: Rules.ApplyRegisterReset.bind(undefined, "D")
+    eventType: GameEventType.ResetD
   },
   ErrorB: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorB,
-    applyRules: Rules.ApplyRegisterError.bind(undefined, "B")
+    eventType: GameEventType.ErrorB
   },
   ErrorC: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorC,
-    applyRules: Rules.ApplyRegisterError.bind(undefined, "C")
+    eventType: GameEventType.ErrorC
   },
   ErrorD: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorD,
-    applyRules: Rules.ApplyRegisterError.bind(undefined, "D")
+    eventType: GameEventType.ErrorD
   },
   ErrorROL: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorROL,
-    applyRules: Rules.ApplyOperationError.bind(undefined, "ROL")
+    eventType: GameEventType.ErrorROL
   },
   ErrorXOR: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorXOR,
-    applyRules: Rules.ApplyOperationError.bind(undefined, "XOR")
+    eventType: GameEventType.ErrorXOR
   },
   ErrorNOT: {
     ...GameEventCard,
-    eventType: GameEventType.ErrorNOT,
-    applyRules: Rules.ApplyOperationError.bind(undefined, "NOT")
+    eventType: GameEventType.ErrorNOT
   },
   OK: {
     ...GameEventCard,
-    eventType: GameEventType.Ok,
-    applyRules: Rules.ApplyFixOperation
+    eventType: GameEventType.Ok
   }
 };
 
