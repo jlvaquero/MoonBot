@@ -63,7 +63,8 @@ const executeBitOperationPublicApi = pipeUntilNull(
 const fixErrorPublicApi = pipeUntilNull(
   checkNoFixLeft,
   checkAlreadyFixed,
-  fixError
+  fixError,
+  raiseGameStatusChanged
 );
 
 //expose the piped functions as the state manager public api
@@ -236,7 +237,7 @@ function obtainNextObjetive({ gameState, playerId }) {
 
   let card = gameState.objetives.pop();
   while (card && card.type !== CardType.Objetive) {
-    gameState = applyCardRules(gameState, card, playerId);
+    gameState = applyCardRules(gameState, card);
     card = gameState.objetives.pop();
   }
 

@@ -32,23 +32,23 @@ const OperationCode = {
 };
 
 const CardType = {
-  Objetive: Symbol.for("OBJETIVE"),
-  Bug: Symbol.for("BUG"),
-  Event: Symbol.for("GAME_EVENT")
+  Objetive: "OBJETIVE",
+  Bug: "BUG",
+  Event: "GAME_EVENT"
 };
 
 const GameEventType = {
-  ResetA: Symbol.for("RESET_A_GAME_EVENT"),
-  ResetB: Symbol.for("RESET_B_GAME_EVENT"),
-  ResetC: Symbol.for("RESET_C_GAME_EVENT"),
-  ResetD: Symbol.for("RESET_D_GAME_EVENT"),
-  Ok: Symbol.for("OK_GAME_EVENT"),
-  ErrorB: Symbol.for("ERROR_B_GAME_EVENT"),
-  ErrorC: Symbol.for("ERROR_C_GAME_EVENT"),
-  ErrorD: Symbol.for("ERROR_D_GAME_EVENT"),
-  ErrorROL: Symbol.for("ERROR_ROL_GAME_EVENT"),
-  ErrorXOR: Symbol.for("ERROR_XOR_GAME_EVENT"),
-  ErrorNOT: Symbol.for("ERROR_NOT_GAME_EVENT")
+  ResetA: "RESET_A_GAME_EVENT",
+  ResetB: "RESET_B_GAME_EVENT",
+  ResetC: "RESET_C_GAME_EVENT",
+  ResetD: "RESET_D_GAME_EVENT",
+  Ok: "OK_GAME_EVENT",
+  ErrorB: "ERROR_B_GAME_EVENT",
+  ErrorC: "ERROR_C_GAME_EVENT",
+  ErrorD: "ERROR_D_GAME_EVENT",
+  ErrorROL: "ERROR_ROL_GAME_EVENT",
+  ErrorXOR: "ERROR_XOR_GAME_EVENT",
+  ErrorNOT: "ERROR_NOT_GAME_EVENT"
 };
 
 const Rules = {
@@ -115,6 +115,7 @@ const Rules = {
 };
 
 const CardRules = {
+  [CardType.Objetive]: (gameState) => gameState,
   [CardType.Bug]: Rules.ApplyBug,
   [GameEventType.ResetA]: Rules.ApplyRegisterReset.bind(undefined, "A"),
   [GameEventType.ResetB]: Rules.ApplyRegisterReset.bind(undefined, "B"),
@@ -135,7 +136,10 @@ const GameEventCard = {
 
 const GameCards = {
 
-  Objetive: { type: CardType.Objetive },
+  Objetive: {
+    type: CardType.Objetive,
+    eventType: CardType.Objetive
+  },
   Bug: {
     type: CardType.Bug,
     eventType: CardType.Bug
