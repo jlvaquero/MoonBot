@@ -305,18 +305,17 @@ describe('gameState behaviour', function () {
 
     const checkFixPending = gameStateModule.__get__("checkFixPending");
     let gameState = {
-      errors: {  }
     };
 
     it('should return null if any fix (> 0) is pending of confirmation', function () {
-      gameState.errors.fixPending = 1;
+      gameState.fixPending = 1;
       assert.equal(checkFixPending({ gameState, playerId }), null);
     });
     it('should return {gameState} if no fix pending left ( <=0 )', function () {
-      gameState.errors.fixPending = 0;
+      gameState.fixPending = 0;
 
       const expected = {
-        errors: { ...gameState.errors }
+        fixPending: 0
       };
      
       assert.deepStrictEqual(checkFixPending({ gameState, playerId }).gameState, expected);
@@ -330,13 +329,14 @@ describe('gameState behaviour', function () {
     };
 
     it('should return null if there is not any fix (<= 0) pending', function () {
-      gameState.errors.fixPending = 0;
+      gameState.fixPending = 0;
       assert.equal(checkNoFixLeft({ gameState, playerId }), null);
     });
     it('should return {gameState} if there is any fix pending ( > 0 )', function () {
-      gameState.errors.fixPending = 1;
+      gameState.fixPending = 1;
       const expected = {
-        errors: { ...gameState.errors }
+        errors: { ...gameState.errors },
+        fixPending: 1
       };
       assert.deepStrictEqual(checkNoFixLeft({ gameState, playerId }).gameState, expected);
     });

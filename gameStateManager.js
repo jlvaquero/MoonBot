@@ -277,7 +277,7 @@ function checkGameWon({ gameState, playerId }) {
 
 //notify a fix event is pending of confirmation
 function checkFixPending({ gameState, playerId }) {
-  const fixRequested = () => gameState.errors.fixPending !== 0;
+  const fixRequested = () => gameState.fixPending !== 0;
 
   if (fixRequested()) {
     eventStream.next({ eventType: EngineEvents.fixOperationPending, gameState, playerId });
@@ -289,7 +289,7 @@ function checkFixPending({ gameState, playerId }) {
 
 //notify no more fix events left
 function checkNoFixLeft({ gameState, playerId }) {
-  const noFixLeft = () => gameState.errors.fixPending === 0;
+  const noFixLeft = () => gameState.fixPending === 0;
   if (noFixLeft()) {
     eventStream.next({ eventType: EngineEvents.noFixLeft, gameState, playerId });
     return null;
@@ -442,7 +442,7 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
   fixPending should decrease by 1 or reset to 0 if no more system errors left*/
 function fixError({ gameState, playerId, error }) {
   gameState.errors[error] = false;
-  gameState.errors.fixPending = Rules.SomeSystemError(gameState) ? gameState.errors.fixPending - 1 : 0; 
+  gameState.fixPending = Rules.SomeSystemError(gameState) ? gameState.fixPending - 1 : 0; 
   eventStream.next({ eventType: EngineEvents.fixOperationApplied, gameState, playerId });
   return { gameState };
 }
@@ -452,12 +452,12 @@ const newGameState = {
   unresolved: 1,
   started: false,
   playerTurn: 0,
-  bugsFound: 0
+  bugsFound: 0,
+  fixPending: 0
 };
 
 //default game state errors for new game
 const errors = {
-  fixPending: 0,
   B: false,
   C: false,
   D: false,

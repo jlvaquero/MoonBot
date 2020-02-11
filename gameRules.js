@@ -67,12 +67,14 @@ const Rules = {
   LastPlayerPlaying(gameState) { return gameState.playerTurn >= gameState.playerList.length - 1; },
   ElementLocked(gameState, element) { return gameState.errors[element]; },
   SomeSystemError(gameState) {
-    return gameState.errors.B ||
+  /*  return gameState.errors.B ||
       gameState.errors.C ||
       gameState.errors.D ||
       gameState.errors.ROL ||
       gameState.errors.NOT ||
-      gameState.errors.XOR;
+      gameState.errors.XOR;*/
+    const numErrorsReducer = (accumulator, currentValue) => accumulator + (currentValue[1] ? 1 : 0);
+    return Object.entries(gameState.errors).reduce(numErrorsReducer, 0);
   },
   KeepMaxEnergyInRange(energy) {
     energy = Number(energy);
@@ -101,9 +103,8 @@ const Rules = {
     gameState.errors[operation] = true;
     return gameState;
   },
-  ApplyFixOperation(gameState) {
-    //increase fixPending only if some system error exist
-    if (Rules.SomeSystemError(gameState)) { gameState.errors.fixPending += 1; }
+  ApplyFixOperation(gameState) { //do not let fixPending go beyond current # errors
+    gameState.fixPending = utils.Clamp(gameState.fixPending + 1, 0, Rules.SomeSystemError(gameState));
     return gameState;
   },
   ApplyCardRule(gameState, card) {

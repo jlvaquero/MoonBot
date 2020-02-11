@@ -339,7 +339,7 @@ describe('game rules', function () {
     let gameState = {
     };
 
-    it('should return false only if all errors are false', function () {
+    it('should return 0 if all errors are false', function () {
       gameState.errors = {
         B: false,
         C: false,
@@ -349,20 +349,46 @@ describe('game rules', function () {
         XOR: false
       };
 
-      assert.equal(ruleModule.Rules.SomeSystemError(gameState), false);  
+      assert.equal(ruleModule.Rules.SomeSystemError(gameState), 0);  
     });
 
-    it('should return true on any error present', function () {
+    it('should return 1 if 1 error present', function () {
       gameState.errors = {
-        B: true,
+        B: false,
         C: false,
-        D: false,
+        D: true,
         ROL: false,
         NOT: false,
         XOR: false
       };
      
-      assert.equal(ruleModule.Rules.SomeSystemError(gameState), true);
+      assert.equal(ruleModule.Rules.SomeSystemError(gameState), 1);
+    });
+
+    it('should return 2 if 2 error present', function () {
+      gameState.errors = {
+        B: true,
+        C: false,
+        D: true,
+        ROL: false,
+        NOT: false,
+        XOR: false
+      };
+
+      assert.equal(ruleModule.Rules.SomeSystemError(gameState), 2);
+    });
+
+    it('should return 6 if 6 error present', function () {
+      gameState.errors = {
+        B: true,
+        C: true,
+        D: true,
+        ROL: true,
+        NOT: true,
+        XOR: true
+      };
+
+      assert.equal(ruleModule.Rules.SomeSystemError(gameState), 6);
     });
  
   });
@@ -495,25 +521,25 @@ describe('game rules', function () {
         D: false,
         ROL: true,
         NOT: false,
-        XOR: false,
-        fixPending: 0
+        XOR: false
       };
+      gameState.fixPending = 0;
       gameState = ruleModule.Rules.ApplyFixOperation(gameState);
-      assert.equal(gameState.errors.fixPending, 1);
+      assert.equal(gameState.fixPending, 1);
     });
 
-    it('should increase fixPending on any error present', function () {
+    it('should not increase fixPending beyond # errors present', function () {
       gameState.errors = {
         B: false,
         C: false,
         D: false,
         ROL: true,
         NOT: false,
-        XOR: false,
-        fixPending: 1
+        XOR: false
       };
+      gameState.fixPending = 1;
       gameState = ruleModule.Rules.ApplyFixOperation(gameState);
-      assert.equal(gameState.errors.fixPending, 2);
+      assert.equal(gameState.fixPending, 1);
     });
 
     it('should not increase fixPending because not error present', function () {
@@ -524,10 +550,10 @@ describe('game rules', function () {
         ROL: false,
         NOT: false,
         XOR: false,
-        fixPending: 0
       };
+      gameState.fixPending = 0;
       gameState = ruleModule.Rules.ApplyFixOperation(gameState);
-      assert.equal(gameState.errors.fixPending, 0);
+      assert.equal(gameState.fixPending, 0);
     });
   });
 });
