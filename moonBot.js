@@ -8,7 +8,7 @@ const { concatMap, map } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
-
+const Store  = require('./store/storeContainer');
 
 const token = process.env.MOON_BOT_TOKEN;
 const useWebHook = process.env.MOON_BOT_USE_WEBHOOK;
@@ -16,16 +16,7 @@ const public_url = process.env.MOON_BOT_PUBLIC_URL;
 const public_port = process.env.MOON_BOT_PUBLIC_PORT;
 const bind_port = process.env.MOON_BOT_BIND_PORT;
 const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
-const use_redis = process.env.MOON_BOT_USE_REDIS;
 
-let Store; 
-
-if (use_redis) {
-  Store = require('./redisStore'); //redis store recommended for production
-}
-else {
-  Store = require('./memoryStore'); //memory store for testing and develop
-}
 
 let options;
 let initBot;
