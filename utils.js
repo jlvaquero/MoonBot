@@ -43,11 +43,16 @@ function pipe(until, fallback, ...fns) {
   };
 }
 
+function isNegative(value) {
+  return Math.sign(value) === -1 ? true : false;
+}
+
 module.exports.RandomInRange = RandomInRange;
 module.exports.Shuffle = Shuffle;
 module.exports.GenerateRandomSet = GenerateRandomSet;
 module.exports.Range = Range;
 module.exports.FilterArrWithSet = FilterArrWithSet;
 module.exports.Clamp = Clamp;
+module.exports.isNegative = isNegative;
 module.exports.pipe = pipe;
 

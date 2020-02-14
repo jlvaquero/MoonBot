@@ -8,7 +8,7 @@ const { concatMap, map } = require('rxjs/operators');
 const { partition } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
-const Store  = require('./store/storeContainer');
+
 
 const token = process.env.MOON_BOT_TOKEN;
 const useWebHook = process.env.MOON_BOT_USE_WEBHOOK;
@@ -16,7 +16,16 @@ const public_url = process.env.MOON_BOT_PUBLIC_URL;
 const public_port = process.env.MOON_BOT_PUBLIC_PORT;
 const bind_port = process.env.MOON_BOT_BIND_PORT;
 const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
+const use_redis = process.env.MOON_BOT_USE_REDIS;
 
+let Store; 
+
+if (use_redis) {
+  Store = require('./redisStore'); //redis store recommended for production
+}
+else {
+  Store = require('./memoryStore'); //memory store for testing and develop
+}
 
 let options;
 let initBot;
@@ -135,8 +144,6 @@ function toMessage(event) {
   };
 }
 
-
-
 //configure bot behaviour with regExp
 bot.onText(/^\/start$/, InitConversationRequest);
 bot.onText(/^\/creategame$/, CreateGameRequest);
@@ -159,6 +166,11 @@ bot.onText(/^\/(not|NOT) ([A-D]|[a-d])$/, NotRequest);
 bot.onText(/^\/(or|OR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, OrRequest);
 bot.onText(/^\/(and|AND) ([A-D]|[a-d]) ([A-D]|[a-d])$/, AndRequest);
 bot.onText(/^\/(xor|XOR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, XorRequest);
+bot.onText(/^\/(add|ADD) ([A-D]|[a-d]) ([A-D]|[a-d])$/, AddRequest);
+bot.onText(/^\/(sub|SUB) ([A-D]|[a-d]) ([A-D]|[a-d])$/, SubRequest);
+bot.onText(/^\/(nor|NOR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, NorRequest);
+bot.onText(/^\/(nand|NAND) ([A-D]|[a-d]) ([A-D]|[a-d])$/, NandRequest);
+bot.onText(/^\/(nxor|NXOR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, NxorRequest);
 
 function InitConversationRequest(msg) {
   bot.sendMessage(msg.chat.id, welcome_message(msg));
@@ -236,6 +248,13 @@ const ExecuteOrOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.or)
 const ExecuteAndOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.and);
 const ExecuteXorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.xor);
 
+const ExecuteAddOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.add);
+const ExecuteSubOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.sub);
+const ExecuteNorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.nor);
+const ExecuteNandOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.nand);
+const ExecuteNxorOperation = Game.ExecuteBitOperation.bind(Game, OperationCode.nxor);
+
+
 async function IncRequest(msg, match) {
   const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied functions above
   if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
@@ -284,6 +303,35 @@ async function XorRequest(msg, match) {
   const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
   if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
  
+}
+
+async function AddRequest(msg, match) {
+  const gameState = await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
+  if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+
+}
+
+async function SubRequest(msg, match) {
+  const gameState = await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
+  if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+
+}
+async function NorRequest(msg, match) {
+  const gameState = await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
+  if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+
+}
+
+async function NandRequest(msg, match) {
+  const gameState = await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
+  if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+
+}
+
+async function NxorRequest(msg, match) {
+  const gameState = await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
+  if (gameState) { eventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+
 }
 
 //gameState to telegram message
@@ -372,7 +420,12 @@ const help_message =
 /not - How to use: "/not D".
 /or - How to use: "/or C B". Register C will be modified.
 /and - How to use: "/and C B". Register C will be modified.
-/xor - How to use: "/xor C B". Register C will be modified.`;
+/xor - How to use: "/xor C B". Register C will be modified.
+/add - How to use: "/add C B". Register C will be modified.
+/sub - How to use: "/sub C B". Register C will be modified.
+/nor - How to use: "/nor C B". Register C will be modified.
+/nand - How to use: "/nand C B". Register C will be modified.
+/nxor - How to use: "/xor C B". Register C will be modified.`;
 
 const rules_message =
   `[What is moon (1110011)?](http://compus.deusto.es/moon/)\n
@@ -392,6 +445,11 @@ Operation  Target  Cost
   or       2 Reg   0.5\u{1F50B}
   and      2 Reg   0.5\u{1F50B}
   xor      2 Reg   0.5\u{1F50B}
+  add      2 Reg   1.5\u{1F50B}
+  sub      2 Reg   1.5\u{1F50B}
+  nor      2 Reg   1  \u{1F50B}
+  nand     2 Reg   1  \u{1F50B}
+  nxor     2 Reg   1  \u{1F50B}
 
 All 2 register operations store the result in the first register.
 "or A B" will modify register A.

@@ -1,3 +1,5 @@
+const { isNegative } = require("./utils");
+
 function Operations(numBits) {
 
   const valueRange = Math.pow(2, numBits);
@@ -23,11 +25,20 @@ function Operations(numBits) {
     OR(value1, value2) {
       return value1 | value2;
     },
+    NOR(value1, value2) {
+      return this.NOT(this.OR(value1, value2));
+    },
     AND(value1, value2) {
       return value1 & value2;
     },
+    NAND(value1, value2) {
+      return this.NOT(this.AND(value1, value2));
+    },
     XOR(value1, value2) {
       return value1 ^ value2;
+    },
+    NXOR(value1, value2) {
+      return this.NOT(this.XOR(value1, value2));
     },
     ROR(value) {
       if (value === 0 || value === maxValue) return value;
@@ -40,6 +51,14 @@ function Operations(numBits) {
       const newValue = (value << 1);
       if (value < halfValue) return newValue;
       return ((newValue & maxValue) | 0x1);
+    },
+    ADD(value1, value2) {
+      const newValue = value1 + value2;
+      return newValue & 0xF;
+    },
+    SUB(value1, value2) {
+      const newValue = value1 - value2;
+      return isNegative(newValue) ? 0x10 + newValue : newValue;
     }
   };
 }
