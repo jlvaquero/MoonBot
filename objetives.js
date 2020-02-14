@@ -14,7 +14,7 @@ function ObjetivesGenerator(numBits, numBugs, useEvents) {
   potentialObjetives = potentialObjetives.concat(Array(numBugs).fill(GameCards.Bug)); //add bugs cards to the end
 
   if (useEvents === "1") { //add events cards
-    const events = [GameCards.ResetA, GameCards.ResetB, GameCards.ResetC, GameCards.ResetD, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD, GameCards.ErrorNOT, GameCards.ErrorROL, GameCards.ErrorXOR].concat(Array(4).fill(GameCards.OK));
+    const events = [GameCards.ResetA, GameCards.ResetB, GameCards.ResetC, GameCards.ResetD, GameCards.Reset2, GameCards.Reset4, GameCards.Reset8, GameCards.ErrorB, GameCards.ErrorC, GameCards.ErrorD, GameCards.ErrorNOT, GameCards.ErrorROL, GameCards.ErrorXOR].concat(Array(4).fill(GameCards.OK));
     potentialObjetives = potentialObjetives.concat(events);
   }
 

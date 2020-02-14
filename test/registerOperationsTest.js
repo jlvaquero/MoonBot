@@ -105,6 +105,33 @@ describe('registerOperations with 4 bits', function () {
     });
   });
 
+  describe('nor operation', function () {
+    it('0 nor 15 - it should return 0', function () {
+      assert.equal(regOp4bits.NOR(0, 15), 0);
+    });
+    it('15 nor 0 - it should return 0', function () {
+      assert.equal(regOp4bits.NOR(15, 0), 0);
+    });
+    it('15 nor 15 - it should return 0', function () {
+      assert.equal(regOp4bits.NOR(15, 15), 0);
+    });
+    it('0 nor 0 - it should return 15', function () {
+      assert.equal(regOp4bits.NOR(0, 0), 15);
+    });
+    it('10 nor 5 - it should return 0', function () {
+      assert.equal(regOp4bits.NOR(10, 5), 0);
+    });
+    it('5 nor 10 - it should return 0', function () {
+      assert.equal(regOp4bits.NOR(5, 10), 0);
+    });
+    it('2 nor 6 - it should return 9', function () {
+      assert.equal(regOp4bits.NOR(2, 6), 9);
+    });
+    it('6 nor 2 - it should return 9', function () {
+      assert.equal(regOp4bits.NOR(6, 2), 9);
+    });
+  });
+
   describe('and operation', function () {
     it('0 and 15 - it should return 0', function () {
       assert.equal(regOp4bits.AND(0, 15), 0);
@@ -134,7 +161,35 @@ describe('registerOperations with 4 bits', function () {
       assert.equal(regOp4bits.AND(14, 15), 14);
     });
   });
-
+  describe('nand operation', function () {
+    it('0 and 15 - it should return 15', function () {
+      assert.equal(regOp4bits.NAND(0, 15), 15);
+    });
+    it('15 and 0 - it should return 15', function () {
+      assert.equal(regOp4bits.NAND(15, 0), 15);
+    });
+    it('15 and 15 - it should return 0', function () {
+      assert.equal(regOp4bits.NAND(15, 15), 0);
+    });
+    it('0 and 0 - it should return 15', function () {
+      assert.equal(regOp4bits.NAND(0, 0), 15);
+    });
+    it('10 and 5 - it should return 15', function () {
+      assert.equal(regOp4bits.NAND(10, 5), 15);
+    });
+    it('15 and 1 - it should return 14', function () {
+      assert.equal(regOp4bits.NAND(15, 1), 14);
+    });
+    it('1 and 15 - it should return 14', function () {
+      assert.equal(regOp4bits.NAND(1, 15), 14);
+    });
+    it('15 and 14 - it should return 1', function () {
+      assert.equal(regOp4bits.NAND(15, 14), 1);
+    });
+    it('14 and 15 - it should return 1', function () {
+      assert.equal(regOp4bits.NAND(14, 15), 1);
+    });
+  });
   describe('xor operation', function () {
     it('15 xor 15 - it should return 0', function () {
       assert.equal(regOp4bits.XOR(15, 15), 0);
@@ -152,7 +207,23 @@ describe('registerOperations with 4 bits', function () {
       assert.equal(regOp4bits.XOR(10, 5), 15);
     });
   });
-
+  describe('nxor operation', function () {
+    it('15 xor 15 - it should return 15', function () {
+      assert.equal(regOp4bits.NXOR(15, 15), 15);
+    });
+    it('15 xor 0 - it should return 0', function () {
+      assert.equal(regOp4bits.NXOR(15, 0), 0);
+    });
+    it('0 xor 15 - it should return 0', function () {
+      assert.equal(regOp4bits.NXOR(0, 15), 0);
+    });
+    it('10 xor 10 - it should return 15', function () {
+      assert.equal(regOp4bits.NXOR(10, 10), 15);
+    });
+    it('10 xor 5 - it should return 0', function () {
+      assert.equal(regOp4bits.NXOR(10, 5), 0);
+    });
+  });
   describe('rol operation', function () {
     it('valuie 0 - it should return 0', function () {
       assert.equal(regOp4bits.ROL(0), 0);
@@ -198,6 +269,17 @@ describe('registerOperations with 4 bits', function () {
     });
     it('value 5 - it should return 10', function () {
       assert.equal(regOp4bits.ROR(5), 10);
+    });
+  });
+
+  describe('add operation', function () {
+    it('is not implemented', function () {
+      assert.fail("not implemented");
+    });
+  });
+  describe('sub operation', function () {
+    it('is not implemented', function () {
+      assert.fail("not implemented");
     });
   });
 

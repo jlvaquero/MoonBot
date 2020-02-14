@@ -14,7 +14,12 @@ const OperationCost = {
   NOT: 1,
   OR: 0.5,
   AND: 0.5,
-  XOR: 0.5
+  XOR: 0.5,
+  ADD: 1.5,
+  SUB: 1.5,
+  NOR: 1,
+  NAND: 1,
+  NXOR: 1
 };
 
 const defaultEnergy = 3;
@@ -28,7 +33,12 @@ const OperationCode = {
   not: "NOT",
   or: "OR",
   and: "AND",
-  xor: "XOR"
+  xor: "XOR",
+  sub: "SUB",
+  add: "ADD",
+  nor: "NOR",
+  nand: "NAND",
+  nxor: "NXOR"
 };
 
 const CardType = {
@@ -42,6 +52,9 @@ const GameEventType = {
   ResetB: "RESET_B_GAME_EVENT",
   ResetC: "RESET_C_GAME_EVENT",
   ResetD: "RESET_D_GAME_EVENT",
+  Reset2: "RESET_2_GAME_EVENT",
+  Reset4: "RESET_2_GAME_EVENT",
+  Reset8: "RESET_2_GAME_EVENT",
   Ok: "OK_GAME_EVENT",
   ErrorB: "ERROR_B_GAME_EVENT",
   ErrorC: "ERROR_C_GAME_EVENT",
@@ -99,6 +112,16 @@ const Rules = {
     gameState.errors[register] = true;
     return gameState;
   },
+  ApplyColumnReset(column, gameState) {
+
+    gameState.registers.A = gameState.registers.A & column;
+    gameState.registers.B = gameState.registers.B & column;
+    gameState.registers.C = gameState.registers.C & column;
+    gameState.registers.D = gameState.registers.D & column;
+
+    return gameState;
+
+  },
   ApplyOperationError(operation, gameState) {
     gameState.errors[operation] = true;
     return gameState;
@@ -122,12 +145,16 @@ const CardRules = {
   [GameEventType.ResetB]: Rules.ApplyRegisterReset.bind(undefined, "B"),
   [GameEventType.ResetC]: Rules.ApplyRegisterReset.bind(undefined, "C"),
   [GameEventType.ResetD]: Rules.ApplyRegisterReset.bind(undefined, "D"),
+  [GameEventType.Reset2]: Rules.ApplyColumnReset.bind(undefined, 0xD),
+  [GameEventType.Reset4]: Rules.ApplyColumnReset.bind(undefined, 0xB),
+  [GameEventType.Reset8]: Rules.ApplyColumnReset.bind(undefined, 0x7),
   [GameEventType.ErrorB]: Rules.ApplyRegisterError.bind(undefined, "B"),
   [GameEventType.ErrorC]: Rules.ApplyRegisterError.bind(undefined, "C"),
   [GameEventType.ErrorD]: Rules.ApplyRegisterError.bind(undefined, "D"),
   [GameEventType.ErrorROL]: Rules.ApplyOperationError.bind(undefined, "ROL"),
   [GameEventType.ErrorXOR]: Rules.ApplyOperationError.bind(undefined, "XOR"),
   [GameEventType.ErrorNOT]: Rules.ApplyOperationError.bind(undefined, "NOT"),
+
   [GameEventType.Ok]: Rules.ApplyFixOperation
 };
 
@@ -160,6 +187,18 @@ const GameCards = {
   ResetD: {
     ...GameEventCard,
     eventType: GameEventType.ResetD
+  },
+  Reset2: {
+    ...GameEventCard,
+    eventType: GameEventType.Reset2
+  },
+  Reset4: {
+    ...GameEventCard,
+    eventType: GameEventType.Reset4
+  },
+  Reset8: {
+    ...GameEventCard,
+    eventType: GameEventType.Reset8
   },
   ErrorB: {
     ...GameEventCard,

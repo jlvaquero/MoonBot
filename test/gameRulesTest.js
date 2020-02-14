@@ -476,6 +476,63 @@ describe('game rules', function () {
    
   });
 
+  describe('apply reset column game card', function () {
+    let gameState = {};
+
+    it('should set bit column 2 to 0', function () {
+      gameState.registers = {
+        A: 1,
+        B: 2,
+        C: 6,
+        D: 13
+      };
+
+      const expected = {
+        A: 1,
+        B: 0,
+        C: 4,
+        D: 13
+      };
+      currentGameState = ruleModule.Rules.ApplyColumnReset(0xD , gameState);
+      assert.deepStrictEqual(currentGameState.registers, expected);
+    });
+    it('should set bit column 4 to 0', function () {
+      gameState.registers = {
+        A: 3,
+        B: 4,
+        C: 6,
+        D: 11
+      };
+
+      const expected = {
+        A: 3,
+        B: 0,
+        C: 2,
+        D: 11
+      };
+      currentGameState = ruleModule.Rules.ApplyColumnReset(0xB, gameState);
+      assert.deepStrictEqual(currentGameState.registers, expected);
+    });
+    it('should set bit column 8 to 0', function () {
+      gameState.registers = {
+        A: 7,
+        B: 8,
+        C: 12,
+        D: 15
+      };
+
+      const expected = {
+        A: 7,
+        B: 0,
+        C: 4,
+        D: 7
+      };
+      currentGameState = ruleModule.Rules.ApplyColumnReset(0x7, gameState);
+      assert.deepStrictEqual(currentGameState.registers, expected);
+    });
+
+  });
+
   describe('apply register error game card', function () {
     let gameState = {
     };
