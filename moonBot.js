@@ -18,14 +18,8 @@ const bind_port = process.env.MOON_BOT_BIND_PORT;
 const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
 const use_redis = process.env.MOON_BOT_USE_REDIS;
 
-let Store; 
 
-if (use_redis) {
-  Store = require('./redisStore'); //redis store recommended for production
-}
-else {
-  Store = require('./memoryStore'); //memory store for testing and develop
-}
+const Store = require('./store/storeContainer'); //redis store recommended for production
 
 let options;
 let initBot;
