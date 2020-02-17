@@ -58,7 +58,7 @@ function Operations(numBits) {
     },
     SUB(value1, value2) {
       const newValue = value1 - value2;
-      return isNegative(newValue) ? 0x10 + newValue : newValue;
+      return isNegative(newValue) ? valueRange + newValue : newValue;
     }
   };
 }
