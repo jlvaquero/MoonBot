@@ -273,13 +273,61 @@ describe('registerOperations with 4 bits', function () {
   });
 
   describe('add operation', function () {
-    it('is not implemented', function () {
-      assert.fail("not implemented");
+    it('0 add 0 should return 0 ', function () {
+      assert.equal(regOp4bits.ADD(0,0), 0);
+    });
+    it('0 add 1 should return 1 ', function () {
+      assert.equal(regOp4bits.ADD(0, 1), 1);
+    });
+    it('1 add 0 should return 1 ', function () {
+      assert.equal(regOp4bits.ADD(1, 0), 1);
+    });
+    it('1 add 1 should return 2 ', function () {
+      assert.equal(regOp4bits.ADD(1, 1), 2);
+    });
+    it('3 add 5 should return 8 ', function () {
+      assert.equal(regOp4bits.ADD(3, 5), 8);
+    });
+    it('5 add 3 should return 8 ', function () {
+      assert.equal(regOp4bits.ADD(5, 3), 8);
+    });
+    it('15 add 0 should return 15 ', function () {
+      assert.equal(regOp4bits.ADD(15, 0), 15);
+    });
+    it('15 add 1 should return 0 ', function () {
+      assert.equal(regOp4bits.ADD(15, 1), 0);
+    });
+    it('14 add 2 should return 0 ', function () {
+      assert.equal(regOp4bits.ADD(14, 2), 0);
+    });
+    it('15 add 2 should return 1 ', function () {
+      assert.equal(regOp4bits.ADD(15, 2), 1);
+    });
+    it('15 add 15 should return 14 ', function () {
+      assert.equal(regOp4bits.ADD(15, 15), 14);
     });
   });
   describe('sub operation', function () {
-    it('is not implemented', function () {
-      assert.fail("not implemented");
+    it('6 sub 2 should retrun 4', function () {
+      assert.equal(regOp4bits.SUB(6, 2), 4);
+    });
+    it('0 sub 0 should retrun 0', function () {
+      assert.equal(regOp4bits.SUB(0, 0), 0);
+    });
+    it('6 sub 0 should retrun 6', function () {
+      assert.equal(regOp4bits.SUB(6, 0), 6);
+    });
+    it('15 sub 0 should retrun 15', function () {
+      assert.equal(regOp4bits.SUB(15, 0), 15);
+    });
+    it('0 sub 1 should retrun 15', function () {
+      assert.equal(regOp4bits.SUB(0, 1), 15);
+    });
+    it('1 sub 3 should retrun 14', function () {
+      assert.equal(regOp4bits.SUB(1, 3), 14);
+    });
+    it('5 sub 10 should retrun 11', function () {
+      assert.equal(regOp4bits.SUB(5, 10), 11);
     });
   });
 
