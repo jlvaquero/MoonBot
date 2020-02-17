@@ -1,5 +1,4 @@
 ﻿const Redis = require('ioredis');
-const { CardType, GameEventType } = require('../gameRules');
 
 const redis = new Redis({
   port: process.env.REDIS_DB_PORT,
