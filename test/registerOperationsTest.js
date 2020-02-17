@@ -306,6 +306,15 @@ describe('registerOperations with 4 bits', function () {
     it('15 add 15 should return 14 ', function () {
       assert.equal(regOp4bits.ADD(15, 15), 14);
     });
+    it('63 add 1 should return 0 ', function () {
+      assert.equal(registerOperations(6).ADD(63, 1), 0);
+    });
+    it('63 add 2 should return 1 ', function () {
+      assert.equal(registerOperations(6).ADD(63, 1), 0);
+    });
+    it('63 add 63 should return 1 ', function () {
+      assert.equal(registerOperations(6).ADD(63, 63), 62);
+    });
   });
   describe('sub operation', function () {
     it('6 sub 2 should retrun 4', function () {
@@ -328,6 +337,9 @@ describe('registerOperations with 4 bits', function () {
     });
     it('5 sub 10 should retrun 11', function () {
       assert.equal(regOp4bits.SUB(5, 10), 11);
+    });
+    it('1 sub 2 should retrun 63', function () {
+      assert.equal(registerOperations(6).SUB(1, 2), 63);
     });
   });
 

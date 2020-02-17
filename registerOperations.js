@@ -54,7 +54,7 @@ function Operations(numBits) {
     },
     ADD(value1, value2) {
       const newValue = value1 + value2;
-      return newValue & 0xF;
+      return newValue & maxValue;
     },
     SUB(value1, value2) {
       const newValue = value1 - value2;
