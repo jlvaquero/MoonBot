@@ -50,9 +50,6 @@
     <Compile Include="gameRules.js">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="memoryStore.js">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="store\memoryStore.js" />
     <Compile Include="store\redisStore.js" />
     <Compile Include="store\storeContainer.js" />
