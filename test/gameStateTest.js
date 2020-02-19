@@ -407,7 +407,7 @@ describe('gameState behaviour', function () {
     const leavePlayer = gameStateModule.__get__("leavePlayer");
     let gameState = { };
 
-    it('should return {gameState} without leave player and unmodified playerTurn when left player is after current player', function () {
+    it('should return {gameState} without player leaving and unmodified playerTurn when leaving player is after current player', function () {
       gameState.playerList = [{ name: playerId, energy: 3 }, { name: 'anotherPlayer', energy: 3 }, { name: 'justAnotherPlayer', energy: 3 }];
       gameState.playerTurn = 1;
 

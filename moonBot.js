@@ -16,8 +16,6 @@ const public_url = process.env.MOON_BOT_PUBLIC_URL;
 const public_port = process.env.MOON_BOT_PUBLIC_PORT;
 const bind_port = process.env.MOON_BOT_BIND_PORT;
 const bind_host = process.env.MOON_BOT_BIND_HOST_IP;
-const use_redis = process.env.MOON_BOT_USE_REDIS;
-
 
 const Store = require('./store/storeContainer'); //redis store recommended for production
 

@@ -2,7 +2,7 @@ const registerOperations = require('../registerOperations');
 const regOp4bits = registerOperations(4);
 const assert = require('assert');
 
-describe('registerOperations with 4 bits', function () {
+describe('registerOperations', function () {
   describe('inc operation', function () {
     it('value 0 - it should return 1', function () {
       assert.equal(regOp4bits.INC(0), 1);
