@@ -5,7 +5,7 @@ const { filter } = require('rxjs/operators');
 function Game(store) {
 
   //obtain state manager event stream
- const eventStream = StateManager.EventStream;
+  const eventStream = StateManager.EventStream;
 
   //react on events that needs game to be cancelled
   const cancellGameEvents = eventStream.pipe(
@@ -18,8 +18,8 @@ function Game(store) {
 
   cancellGameEvents.subscribe({
     next(event) {
-       gameAPI.CancelGame(event.gameState.id, event.playerId);
-      }
+      gameAPI.CancelGame(event.gameState.id, event.playerId);
+    }
   });
 
   //react on game state changed; just store the new state
@@ -33,7 +33,7 @@ function Game(store) {
   const gameAPI = {
     EventStream: eventStream, //allows consumer to capture the event stream
 
-    async CreateGame(gameId, playerId, numBits, numBugs, maxEnergy, useEvents ) {
+    async CreateGame(gameId, playerId, numBits, numBugs, maxEnergy, useEvents) {
 
       //do not let create a new game if one already existe
       let gameState = await store.get(gameId);
@@ -44,8 +44,8 @@ function Game(store) {
 
       //incomplete request
       if (!numBits) {
-          eventStream.next({ eventType: EngineEvents.gameNumBitsMissed, gameId, playerId }); //notify it by event
-          return null;
+        eventStream.next({ eventType: EngineEvents.gameNumBitsMissed, gameId, playerId }); //notify it by event
+        return null;
       }
       if (!numBugs) {
         eventStream.next({ eventType: EngineEvents.gameNumBugsMissed, gameId, playerId, numBits });
@@ -126,6 +126,11 @@ function Game(store) {
     },
 
     async CancelGame(gameId, playerId) {
+      let gameState = await store.get(gameId);
+      if (!gameState) {
+        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+        return;
+      }
       await store.del(gameId);
       eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId });
     },
@@ -143,7 +148,7 @@ function Game(store) {
       return gameState;
     },
 
-    async FixError(gameId, playerId, _ , error) {
+    async FixError(gameId, playerId, _, error) {
 
       let gameState = await store.get(gameId);
       if (!gameState) {
@@ -156,9 +161,10 @@ function Game(store) {
       return gameState;
     },
 
-    Quit() {
+    async Quit() {
+      eventStream.complete();
       eventStream.unsubscribe();
-      return store.quit();
+      return await store.quit();
     }
   };
 
