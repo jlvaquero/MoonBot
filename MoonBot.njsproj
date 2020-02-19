@@ -37,6 +37,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="configExample\" />
+    <Folder Include="statistics\" />
     <Folder Include="store\" />
     <Folder Include="test" />
   </ItemGroup>
@@ -48,6 +49,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="gameRules.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="statistics\statistics.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="store\memoryStore.js" />
