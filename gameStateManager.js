@@ -428,10 +428,10 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
 
   const player = () => Rules.CurrentPlayer(gameState);
   const cpu_reg_value = (reg) => reg ? gameState.registers[reg] : reg;
-
-  const operationFnc = RegisterOperations(gameState.numBits)[operation];
-
-  gameState.registers[cpu_reg1] = operationFnc(cpu_reg_value(cpu_reg1), cpu_reg_value(cpu_reg2));
+  const reg1 = cpu_reg_value(cpu_reg1);
+  const reg2 = cpu_reg_value(cpu_reg2);
+  
+  gameState.registers[cpu_reg1] = RegisterOperations(gameState.numBits)[operation](reg1, reg2);
   player().energy -= cost;
 
   eventStream.next({ eventType: EngineEvents.operationApplied, gameState, playerId });

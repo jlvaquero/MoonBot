@@ -6,15 +6,20 @@ const redis = new Redis({
   password: process.env.REDIS_DB_PASSWORD
 });
 
+const expireTime = process.env.REDIS_DATA_EXPIRE;
+
 const RedisStore = {
   async set(gameId, gameState) {
-    return await redis.set(gameId, JSON.stringify(gameState), 'ex', 86400); //game will be deleted after 24h without activity
+    return await redis.set(`games:moon:${gameId}`, JSON.stringify(gameState), 'ex', expireTime); //game will be deleted after expireTime without activity
   },
   async get(gameId) {
-    return JSON.parse(await redis.get(gameId));
+    return JSON.parse(await redis.get(`games:moon:${gameId}`));
   },
   async del(gameId) {
-    return await redis.del(gameId);
+    return await redis.del(`games:moon:${gameId}`);
+  },
+  async quit() {
+    return await redis.quit();
   }
 };
 
