@@ -4,6 +4,7 @@ const EngineEvents = require('./engineEvents');
 const { Subject } = require('rxjs');
 const { pipe } = require('./utils');
 const RegisterOperations = require('./registerOperations');
+const uuidv1 = require('uuid/v1');
 
 //create the event stream
 const eventStream = new Subject();
@@ -340,6 +341,7 @@ function createGame({ gameId, playerId, numBits, numBugs, maxEnergy, useEvents }
     ...newGameState,
     errors: {...errors },
     id: gameId,
+    uuid: uuidv1(),
     numBits: Rules.KeepNumBitsRange(numBits),
     playerList: new Array(), //TODO: a linked list would be a better structure to manage players and turns
     currentObjetive: currentObjetive,
@@ -443,7 +445,7 @@ function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, c
 function fixError({ gameState, playerId, error }) {
   gameState.errors[error] = false;
   gameState.fixPending = Rules.SomeSystemError(gameState) ? gameState.fixPending - 1 : 0; 
-  eventStream.next({ eventType: EngineEvents.fixOperationApplied, gameState, playerId });
+  eventStream.next({ eventType: EngineEvents.fixOperationApplied, gameState, playerId, error });
   return { gameState };
 }
 

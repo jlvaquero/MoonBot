@@ -37,11 +37,15 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="configExample\" />
+    <Folder Include="recorder\" />
     <Folder Include="statistics\" />
     <Folder Include="store\" />
     <Folder Include="test" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="engineCommands.js">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="eventMessages.js">
       <SubType>Code</SubType>
     </Compile>
@@ -49,6 +53,9 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="gameRules.js">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="recorder\recorder.js">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="statistics\statistics.js">
