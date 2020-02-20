@@ -1,12 +1,12 @@
 ﻿const Redis = require('ioredis');
 
 const redis = new Redis({
-  port: process.env.REDIS_DB_PORT,
-  host: process.env.REDIS_DB_HOST,
-  password: process.env.REDIS_DB_PASSWORD
+  port: process.env.MOON_BOT_REDIS_DB_PORT,
+  host: process.env.MOON_BOT_REDIS_DB_HOST,
+  password: process.env.MOON_BOT_REDIS_DB_PASSWORD
 });
 
-const expireTime = process.env.REDIS_DATA_EXPIRE;
+const expireTime = process.env.MOON_BOT_REDIS_DATA_EXPIRE;
 
 const RedisStore = {
   async set(gameId, gameState) {

@@ -29,7 +29,8 @@
     "ioredis": "^4.14.1",
     "node-telegram-bot-api": "^0.40.0",
     "rxjs": "^6.5.4",
-    "sprintf-js": "^1.1.2"
+    "sprintf-js": "^1.1.2",
+    "uuid": "^3.4.0"
   },
   "devDependencies": {
     "mocha": "^6.2.2",

@@ -2,10 +2,11 @@
 const { telegramEventMessages } = require('./eventMessages');
 const { OperationCode } = require('./gameRules');
 const EngineEvents = require('./engineEvents');
+const EngineCommands = require('./engineCommands');
 const { sprintf } = require('sprintf-js');
 const TelegramBot = require('node-telegram-bot-api');
 const { concatMap, map } = require('rxjs/operators');
-const { partition } = require('rxjs');
+const { partition, Subject } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
 
@@ -13,10 +14,12 @@ const { Rules, GameEventType } = require('./gameRules');
 //keeping simple https://xkcd.com/974/
 const showStateEvent = Symbol.for("SHOW_GAME_STATE");
 const Store = require('./store/storeContainer'); //redis store recommended for production
+const commandStream = new Subject();
 const Game = require('./moonGame')(Store);
 const gameEventStream = Game.EventStream;
 const eventStreams = eventSubscriptions(gameEventStream);
 const statistics = require('./statistics/statistics')(gameEventStream);
+const recorder = require('./recorder/recorder')(commandStream);
 const bot = telegramBot();
 configureTelegramBot(bot);
 //end main flow
@@ -56,7 +59,6 @@ function telegramBot() {
   }
 
   return initBot();
-
 }
 
 function eventSubscriptions(eventStream) {
@@ -134,7 +136,7 @@ function eventSubscriptions(eventStream) {
   //send message and send gameState
   fixOperationApplied.subscribe({
     next(event) {
-
+      commandStream.next({ type: EngineCommands.applyFix, gameId: event.gameState.id, gameUUID: event.gameState.uuid, playerId: event.playerId, error: event.error });
       return sendMessage(event.playerId, event.gameState.id, telegramEventMessages[event.eventType]).
         then(() => sendGameStatus(event.playerId, event.gameState.id, event.gameState));
     }
@@ -222,7 +224,10 @@ function configureTelegramBot(bot) {
 
   async function StartGameRequest(msg) {
     const gameState = await Game.StartGame(msg.chat.id, msg.from.username); //will raise events
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.startGame, gameUUID: gameState.uuid, playerId: msg.from.username, gameState });
+    }
   }
 
   async function StatusGameRequest(msg) {
@@ -232,11 +237,17 @@ function configureTelegramBot(bot) {
 
   async function EndTurnRequest(msg) {
     const gameState = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.endTurn, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
+    }
   }
 
-  function CancellGameRequest(msg) {
-    Game.CancelGame(msg.chat.id);
+  async function CancellGameRequest(msg) {
+   const gameState = await Game.CancelGame(msg.chat.id);
+    if (gameState) {
+      commandStream.next({ type: EngineCommands.cancelGame, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
+    }
   }
 
   function HelpRequest(msg) {
@@ -271,80 +282,122 @@ function configureTelegramBot(bot) {
 
   async function IncRequest(msg, match) {
     const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied functions above
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.inc, target1: match[2].toUpperCase(), target2: undefined });
+    }
   }
 
   async function DecRequest(msg, match) {
     const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.dec, target1: match[2].toUpperCase(), target2: undefined });
+    }
   }
 
   async function RolRequest(msg, match) {
     const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.rol, target1: match[2].toUpperCase(), target2: undefined });
+    }
   }
 
   async function RorRequest(msg, match) {
     const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.ror, target1: match[2].toUpperCase(), target2: undefined });
+    }
 
   }
 
   async function MovRequest(msg, match) {
     const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.mov, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
   async function NotRequest(msg, match) {
     const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.not, target1: match[2].toUpperCase(), target2: undefined });
+    }
 
   }
 
   async function OrRequest(msg, match) {
     const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.or, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function AndRequest(msg, match) {
     const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.and, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function XorRequest(msg, match) {
     const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.xor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function AddRequest(msg, match) {
     const gameState = await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.add, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function SubRequest(msg, match) {
     const gameState = await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.sub, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
   async function NorRequest(msg, match) {
     const gameState = await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function NandRequest(msg, match) {
     const gameState = await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nand, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 
   async function NxorRequest(msg, match) {
     const gameState = await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    if (gameState) {
+      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nxor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
+    }
 
   }
 }
@@ -471,5 +524,8 @@ All 2 register operations store the result in the first register.
 
 
 process.on('SIGINT', async function () {
+  commandStream.complete();
   await Game.Quit();
+  await statistics.quit();
+  await recorder.quit();
 });

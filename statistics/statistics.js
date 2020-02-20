@@ -2,24 +2,26 @@
 const Redis = require('ioredis');
 const { partition } = require('rxjs');
 
-const redis = new Redis({
-  port: process.env.REDIS_DB_PORT,
-  host: process.env.REDIS_DB_HOST,
-  password: process.env.REDIS_DB_PASSWORD
-});
-
-
 function statistics(events) {
 
   const useStatistics = process.env.MOON_BOT_USE_REDIS && process.env.MOON_BOT_USE_STATISTICS;
 
-  if (!useStatistics) { return null; }
+  if (!useStatistics) {
+    return {
+      quit: () => Promise.resolve('OK')
+    };
+  }
+
+  const redis = new Redis({
+    port: process.env.MOON_BOT_REDIS_DB_PORT,
+    host: process.env.MOON_BOT_REDIS_DB_HOST,
+    password: process.env.MOON_BOT_REDIS_DB_PASSWORD
+  });
 
   let gameStarted = null;
   let gameWon = null;
   let gameLost = null;
-  let gameCancelled = null;
-
+ 
   [gameStarted, restOfEvents] = partition(events, event => event.eventType === EngineEvents.gameStarted);
   [gameWon, restOfEvents] = partition(events, event => event.eventType === EngineEvents.gameWon);
   [gameLost, restOfEvents] = partition(events, event => event.eventType === EngineEvents.gameLost);
@@ -41,6 +43,13 @@ function statistics(events) {
       redis.incr('games:moon:stats:lost');
     }
   });
+
+  return {
+    gameStarted,
+    gameWon,
+    gameLost,
+    quit() { return redis.quit(); }
+  };
 
 }
 

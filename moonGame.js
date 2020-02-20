@@ -129,10 +129,12 @@ function Game(store) {
       let gameState = await store.get(gameId);
       if (!gameState) {
         eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return;
+        return null;
       }
-      await store.del(gameId);
-      eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId });
+
+       await store.del(gameId);
+       eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId });
+       return gameState;
     },
 
     async ExecuteBitOperation(operation, gameId, playerId, cpu_reg1, cpu_reg2) {
@@ -163,7 +165,6 @@ function Game(store) {
 
     async Quit() {
       eventStream.complete();
-      eventStream.unsubscribe();
       return await store.quit();
     }
   };
