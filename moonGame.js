@@ -1,6 +1,7 @@
 const StateManager = require('./gameStateManager');
 const EngineEvents = require('./engineEvents');
 const { filter } = require('rxjs/operators');
+const { nullable } = require('pratica');
 
 function Game(store) {
 
@@ -67,100 +68,120 @@ function Game(store) {
 
     async JoinGame(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.JoinPlayer({ gameState, playerId }).gameState;
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.JoinPlayer({ gameState, playerId }).gameState));
     },
 
     async LeaveGame(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.LeavePlayer({ gameState, playerId }).gameState;
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.LeavePlayer({ gameState, playerId }).gameState));
+
     },
 
     async StartGame(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.StartGame({ gameState, playerId }).gameState;
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.StartGame({ gameState, playerId }).gameState));
+
     },
 
     async StatusGame(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      eventStream.next({ eventType: EngineEvents.gameStatusConsulted, gameState, playerId });
+      gameState
+        .cata({
+          Just: gameState => eventStream.next({ eventType: EngineEvents.gameStatusConsulted, gameState, playerId }),
+          Nothing: () => eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId })
+        });
+
       return gameState;
     },
 
     async EndPlayerTurn(gameId, playerId) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.EndTurn({ gameState, playerId }).gameState;
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.EndTurn({ gameState, playerId }).gameState));
     },
 
     async CancelGame(gameId, playerId) {
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
 
-       await store.del(gameId);
-       eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId });
+      const gameState = nullable(await store.get(gameId));
+
+      gameState
+        .cata({
+          Just: _ => store.del(gameId).then(eventStream.next({ eventType: EngineEvents.gameCancelled, gameState: { id: gameId }, playerId })),
+          Nothing: () => eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId })
+        });
+
        return gameState;
     },
 
     async ExecuteBitOperation(operation, gameId, playerId, cpu_reg1, cpu_reg2) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.ExecuteBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState;
-
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.ExecuteBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState));
     },
 
     async FixError(gameId, playerId, _, error) {
 
-      let gameState = await store.get(gameId);
-      if (!gameState) {
-        eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-        return null;
-      }
+      const gameState = nullable(await store.get(gameId));
 
-      gameState = StateManager.fixError({ gameState, playerId, error }).gameState;
-
-      return gameState;
+      return gameState
+        .cata({
+          Nothing: () => {
+            eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
+            return nullable();
+          },
+          Just: _ => gameState
+        })
+        .chain(gameState => nullable(StateManager.fixError({ gameState, playerId, error }).gameState));
     },
 
     async Quit() {

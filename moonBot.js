@@ -87,11 +87,6 @@ function eventSubscriptions(eventStream) {
       sendStatus: event.eventType === showStateEvent
     };
   }
-  /*let numBitsMissedEvents;
-  let numBugsMissedEvents;
-  let maxEnergyMissedEvents;
-  let useEventsMissedEvents;
-  let noGameInstanceEvents;*/
 
   //isolate events to react in a different way on each
   [numBitsMissedEvents, restOfEvents] = partition(eventStream, event => event.eventType === EngineEvents.gameNumBitsMissed);
@@ -154,7 +149,8 @@ this ensures the order of the messages sent to the chat.*/
     maxEnergyMissedEvents,
     useEventsMissedEvents,
     noGameInstanceEvents,
-    fixOperationApplied
+    fixOperationApplied,
+    restOfEvents
 
   };
 }
@@ -223,31 +219,47 @@ function configureTelegramBot(bot) {
   }
 
   async function StartGameRequest(msg) {
-    const gameState = await Game.StartGame(msg.chat.id, msg.from.username); //will raise events
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.startGame, gameUUID: gameState.uuid, playerId: msg.from.username, gameState });
-    }
+    (await Game.StartGame(msg.chat.id, msg.from.username))
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.startGame, gameUUID: gameState.uuid, playerId: msg.from.username, gameState });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function StatusGameRequest(msg) {
-    const gameState = await Game.StatusGame(msg.chat.id, msg.from.username);
-    if (gameState) { gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState }); }
+    (await Game.StatusGame(msg.chat.id, msg.from.username))
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function EndTurnRequest(msg) {
-    const gameState = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.endTurn, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
-    }
+
+     const game = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
+      game.cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.endTurn, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function CancellGameRequest(msg) {
-   const gameState = await Game.CancelGame(msg.chat.id);
-    if (gameState) {
-      commandStream.next({ type: EngineCommands.cancelGame, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
-    }
+
+    (await Game.CancelGame(msg.chat.id, msg.from.username))
+      .cata({
+        Just: gameState => {
+          commandStream.next({ type: EngineCommands.cancelGame, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
+        },
+        Nothing: () => { }
+      });
   }
 
   function HelpRequest(msg) {
@@ -281,124 +293,165 @@ function configureTelegramBot(bot) {
 
 
   async function IncRequest(msg, match) {
-    const gameState = await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase()); //use the partial applied functions above
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.inc, target1: match[2].toUpperCase(), target2: undefined });
-    }
+    (await ExecuteIncOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.inc, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function DecRequest(msg, match) {
-    const gameState = await ExecuteDecOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.dec, target1: match[2].toUpperCase(), target2: undefined });
-    }
+
+    (await ExecuteDecOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.dec, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function RolRequest(msg, match) {
-    const gameState = await ExecuteRolOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.rol, target1: match[2].toUpperCase(), target2: undefined });
-    }
+
+    (await ExecuteRolOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.rol, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function RorRequest(msg, match) {
-    const gameState = await ExecuteRorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.ror, target1: match[2].toUpperCase(), target2: undefined });
-    }
 
+    (await ExecuteRorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.ror, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function MovRequest(msg, match) {
-    const gameState = await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.mov, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
 
+    (await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.mov, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
-  async function NotRequest(msg, match) {
-    const gameState = await ExecuteNotOperation(msg.chat.id, msg.from.username, match[2].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.not, target1: match[2].toUpperCase(), target2: undefined });
-    }
 
+  async function NotRequest(msg, match) {
+
+    (await ExecuteNotOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.not, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function OrRequest(msg, match) {
-    const gameState = await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.or, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
 
+    (await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.or, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function AndRequest(msg, match) {
-    const gameState = await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.and, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
+    (await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.and, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
 
   }
 
   async function XorRequest(msg, match) {
-    const gameState = await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.xor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
+    (await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.xor, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
 
   }
 
   async function AddRequest(msg, match) {
-    const gameState = await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.add, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
-
+    (await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.add, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function SubRequest(msg, match) {
-    const gameState = await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.sub, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
+    (await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.sub, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
 
   }
   async function NorRequest(msg, match) {
-    const gameState = await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
-
+    (await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nor, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function NandRequest(msg, match) {
-    const gameState = await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nand, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
-
+    (await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nand, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 
   async function NxorRequest(msg, match) {
-    const gameState = await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase());
-    if (gameState) {
-      gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
-      commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nxor, target1: match[2].toUpperCase(), target2: match[3].toUpperCase() });
-    }
-
+    (await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+      .cata({
+        Just: gameState => {
+          gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
+          commandStream.next({ type: EngineCommands.applyOperation, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username, operation: OperationCode.nxor, target1: match[2].toUpperCase(), target2: undefined });
+        },
+        Nothing: () => { }
+      });
   }
 }
 //gameState to telegram message
