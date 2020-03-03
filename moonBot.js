@@ -9,6 +9,7 @@ const { concatMap, map } = require('rxjs/operators');
 const { partition, Subject } = require('rxjs');
 const keyBoards = require('./telegramKeyboard');
 const { Rules, GameEventType } = require('./gameRules');
+const { Ok, Err, nullable } = require('pratica');
 
 //main flow
 //keeping simple https://xkcd.com/974/
@@ -185,37 +186,40 @@ function configureTelegramBot(bot) {
   bot.onText(/^\/(nxor|NXOR) ([A-D]|[a-d]) ([A-D]|[a-d])$/, NxorRequest);
 
   function InitConversationRequest(msg) {
-    bot.sendMessage(msg.chat.id, welcome_message(msg));
+    return bot.sendMessage(msg.chat.id, welcome_message(msg));
   }
 
   function CreateGameRequest(msg) {
-    Game.CreateGame(msg.chat.id, msg.from.username);
+    return Game.CreateGame(msg.chat.id, msg.from.username);
   }
 
   //handle inline keyboard responses
-  async function inlineCallbackParser(callbackQuery) {
+  function inlineCallbackParser(callbackQuery) {
 
     let args = new Array();
     args.push(callbackQuery.message.chat.id); //gameId
     args.push(callbackQuery.from.username); //playerId
     args = args.concat(callbackQuery.data.split(" "));
 
-    if (args[2] === "fix") { //[gameId, playerId, fix, B]
-      await Game.FixError.apply(Game, args); //will raise fixOperationApplied event
-    }
-    else {
-      await Game.CreateGame.apply(Game, args); // [gameId, playerId, ...create game parameters]; will raise missed events if args is incomplete
-    }
+    const isFix = () => args[2] === "fix"
+      ? Ok(args[2])
+      : Err(args[2]);
 
-    bot.answerCallbackQuery(callbackQuery.id); //just finish the callback; the job will be done on missed events subscriptions
+    isFix() //[gameId, playerId, fix, B]
+      .cata({
+        Ok: _ => Game.FixError.apply(Game, args),
+        Err: () => Game.CreateGame.apply(Game, args)
+      });
+
+    return bot.answerCallbackQuery(callbackQuery.id); //just finish the callback; the job will be done on missed events subscriptions
   }
 
   function JoinGameRequest(msg) {
-    Game.JoinGame(msg.chat.id, msg.from.username); //will raise events
+    return Game.JoinGame(msg.chat.id, msg.from.username); //will raise events
   }
 
   function LeaveGameRequest(msg) {
-    Game.LeaveGame(msg.chat.id, msg.from.username); //will raise events
+    return Game.LeaveGame(msg.chat.id, msg.from.username); //will raise events
   }
 
   async function StartGameRequest(msg) {
@@ -241,8 +245,8 @@ function configureTelegramBot(bot) {
 
   async function EndTurnRequest(msg) {
 
-     const game = await Game.EndPlayerTurn(msg.chat.id, msg.from.username);
-      game.cata({
+    (await Game.EndPlayerTurn(msg.chat.id, msg.from.username))
+      .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
           commandStream.next({ type: EngineCommands.endTurn, gameId: gameState.id, gameUUID: gameState.uuid, playerId: msg.from.username });
@@ -341,7 +345,7 @@ function configureTelegramBot(bot) {
 
   async function MovRequest(msg, match) {
 
-    (await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteMovOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -365,7 +369,7 @@ function configureTelegramBot(bot) {
 
   async function OrRequest(msg, match) {
 
-    (await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteOrOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -376,7 +380,7 @@ function configureTelegramBot(bot) {
   }
 
   async function AndRequest(msg, match) {
-    (await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteAndOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -388,7 +392,7 @@ function configureTelegramBot(bot) {
   }
 
   async function XorRequest(msg, match) {
-    (await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteXorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -400,7 +404,7 @@ function configureTelegramBot(bot) {
   }
 
   async function AddRequest(msg, match) {
-    (await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteAddOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -411,7 +415,7 @@ function configureTelegramBot(bot) {
   }
 
   async function SubRequest(msg, match) {
-    (await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteSubOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -422,7 +426,7 @@ function configureTelegramBot(bot) {
 
   }
   async function NorRequest(msg, match) {
-    (await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteNorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -433,7 +437,7 @@ function configureTelegramBot(bot) {
   }
 
   async function NandRequest(msg, match) {
-    (await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteNandOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });
@@ -444,7 +448,7 @@ function configureTelegramBot(bot) {
   }
 
   async function NxorRequest(msg, match) {
-    (await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase())) //use the partial applied functions above
+    (await ExecuteNxorOperation(msg.chat.id, msg.from.username, match[2].toUpperCase(), match[3].toUpperCase())) //use the partial applied functions above
       .cata({
         Just: gameState => {
           gameEventStream.next({ eventType: showStateEvent, gameId: msg.chat.id, playerId: msg.from.username, gameState });

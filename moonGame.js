@@ -36,7 +36,7 @@ function Game(store) {
 
     async CreateGame(gameId, playerId, numBits, numBugs, maxEnergy, useEvents) {
 
-      //do not let create a new game if one already existe
+      //do not let create a new game if one already exist
       let gameState = await store.get(gameId);
       if (gameState) {
         eventStream.next({ eventType: EngineEvents.gameAlreadyCreated, gameState, playerId });
@@ -74,11 +74,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.JoinPlayer({ gameState, playerId }).gameState));
+          Just: gameState => nullable(StateManager.JoinPlayer({ gameState, playerId }).gameState)
+        });
     },
 
     async LeaveGame(gameId, playerId) {
@@ -89,12 +88,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.LeavePlayer({ gameState, playerId }).gameState));
-
+          Just: gameState => nullable(StateManager.LeavePlayer({ gameState, playerId }).gameState)
+        });
     },
 
     async StartGame(gameId, playerId) {
@@ -105,11 +102,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.StartGame({ gameState, playerId }).gameState));
+          Just: gameState => nullable(StateManager.StartGame({ gameState, playerId }).gameState)
+        });
 
     },
 
@@ -134,11 +130,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.EndTurn({ gameState, playerId }).gameState));
+          Just: gameState => nullable(StateManager.EndTurn({ gameState, playerId }).gameState)
+        });
     },
 
     async CancelGame(gameId, playerId) {
@@ -162,11 +157,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.ExecuteBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState));
+          Just: gameState => nullable(StateManager.ExecuteBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState)
+        });
     },
 
     async FixError(gameId, playerId, _, error) {
@@ -177,11 +171,10 @@ function Game(store) {
         .cata({
           Nothing: () => {
             eventStream.next({ eventType: EngineEvents.gameNotCreated, gameId: gameId, playerId });
-            return nullable();
+            return gameState;
           },
-          Just: _ => gameState
-        })
-        .chain(gameState => nullable(StateManager.fixError({ gameState, playerId, error }).gameState));
+          Just: gameState => nullable(StateManager.fixError({ gameState, playerId, error }).gameState)
+        });
     },
 
     async Quit() {
