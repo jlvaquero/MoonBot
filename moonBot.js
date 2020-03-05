@@ -64,7 +64,7 @@ function telegramBot() {
 
 function eventSubscriptions(eventStream) {
   /*
-   * Obtain game event stream and subscribe for behaviour
+   * Obtain game event stream and subscribe for behavior
    */
 
   function notify(messageData) {
@@ -157,7 +157,7 @@ this ensures the order of the messages sent to the chat.*/
 }
 
 function configureTelegramBot(bot) {
-  //configure bot behaviour with regExp
+  //configure bot behavior with regExp
   bot.onText(/^\/start$/, InitConversationRequest);
   bot.onText(/^\/creategame$/, CreateGameRequest);
   bot.on('callback_query', inlineCallbackParser);
@@ -512,7 +512,7 @@ function sendMessage(playerId, chatId, message, keyboard) {
 }
 
 //send game status if not null or undefined
-async function sendGameStatus(playerId, chatId, gameState) {
+function sendGameStatus(playerId, chatId, gameState) {
   if (!gameState) { return Promise.resolve(); }
   return sendMessage(playerId, chatId, buildStatusMessage(gameState));
 }
@@ -585,4 +585,5 @@ process.on('SIGINT', async function () {
   await Game.Quit();
   await statistics.quit();
   await recorder.quit();
+  process.exit(0);
 });

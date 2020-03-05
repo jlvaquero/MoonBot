@@ -1,11 +1,13 @@
 ﻿var rewire = require("rewire");
 var gameStateModule = rewire("../gameStateManager.js");
+const { OperationCode } = require('../gameRules');
+
 const assert = require('assert');
 
 const playerId = "userForTest";
 
-describe('gameState behaviour', function () {
-  describe('obtainOperationCost behaviour', function () {
+describe('gameState behavior', function () {
+  describe('obtainOperationCost behavior', function () {
 
     const obtainOperationCost = gameStateModule.__get__("obtainOperationCost");
 
@@ -428,4 +430,33 @@ describe('gameState behaviour', function () {
       assert.deepStrictEqual(leavePlayer({ gameState, playerId }).gameState, expected);
     });
   });
+  describe('executeBitOperation behavior', function () {
+
+    const executeBitOperation = gameStateModule.__get__("executeBitOperation");
+    let gameState = {
+      numBits: 4,
+      registers: {
+        A: 15,
+        B: 2
+      }
+    };
+
+    it('should return {gameState} with A value 1', function () {
+
+      const operation = OperationCode.add;
+      const cpu_reg1 = 'A';
+      const cpu_reg2 = 'B';
+
+      const expected = {
+        numBits: 4,
+        registers: {
+          A: 1,
+          B: 2
+        }
+      };
+      assert.deepStrictEqual(executeBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }).gameState, expected);
+    });
+
+  });
+
 });

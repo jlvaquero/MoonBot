@@ -9,6 +9,16 @@ const uuidv1 = require('uuid/v1');
 //create the event stream
 const eventStream = new Subject();
 
+const regOpsMap = {
+  [Symbol.for(4)]: RegisterOperations(4),
+  [Symbol.for(5)]: RegisterOperations(5),
+  [Symbol.for(6)]: RegisterOperations(6)
+};
+
+function operations(numBits) {
+  return regOpsMap[Symbol.for(numBits)];
+}
+
 //stop piping functions on null output and return {gameState :null} as fallback value
 const pipeUntilNull = pipe.bind(undefined, (input) => input === null, () => { return { gameState: null }; });
 
@@ -54,6 +64,7 @@ const executeBitOperationPublicApi = pipeUntilNull(
   checkOperationLocked,
   checkRegisterLocked,
   executeBitOperation,
+  decreasePlayerEnergy,
   checkObjetiveAccomplished,
   checkGameWon,
   checkShouldEndTurn,
@@ -83,7 +94,7 @@ const gameStateManager = {
 };
 
 /*
- * stand alone functions with behaviour. every one has a single responsibility for state checks and raise its related event
+ * stand alone functions with behavior. every one has a single responsibility for state checks and raise its related event
  */
 
 function obtainOperationCost({ operation }) {
@@ -426,17 +437,22 @@ function endTurn({ gameState, playerId }) {
   return { gameState };
 }
 
-function executeBitOperation({ gameState, playerId, operation, cost, cpu_reg1, cpu_reg2 }) {
+function executeBitOperation({ gameState, playerId, operation, cpu_reg1, cpu_reg2 }) {
 
-  const player = () => Rules.CurrentPlayer(gameState);
+  
   const cpu_reg_value = (reg) => reg ? gameState.registers[reg] : reg;
   const reg1 = cpu_reg_value(cpu_reg1);
   const reg2 = cpu_reg_value(cpu_reg2);
   
-  gameState.registers[cpu_reg1] = RegisterOperations(gameState.numBits)[operation](reg1, reg2);
-  player().energy -= cost;
-
+  gameState.registers[cpu_reg1] = operations(gameState.numBits)[operation](reg1, reg2);
+  
   eventStream.next({ eventType: EngineEvents.operationApplied, gameState, playerId });
+  return { gameState };
+}
+
+function decreasePlayerEnergy({ gameState, cost }) {
+  const player = () => Rules.CurrentPlayer(gameState);
+  player().energy -= cost;
   return { gameState };
 }
 
