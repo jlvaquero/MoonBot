@@ -7,9 +7,7 @@ Bot to play [Moon (1110011)](http://compus.deusto.es/moon/) tabletop solo/cooper
 
 The game engine is platform agnostic so it can be used to port the game into another platform (i.e. slack) or even build a primitive GUI for it (i.e. HTML 5)
 
-It is in Beta. Still a lot of in-game testing is needed along with code resilence (no error controls up to date) and unit and integration tests.
-
-Good news!!! The game creator, Pablo Garaizar, and Deusto LearningLab have offered to host a Moon Telegram Bot. We are working on bring it up right now. Just be patient.
+It is in Beta. Still a lot of in-game testing is needed along with code resilence (no error controls up to date) and more unit and integration tests.
 
 How to deploy your own moonBot:
 
