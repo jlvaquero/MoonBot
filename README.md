@@ -15,7 +15,7 @@ How to deploy your own moonBot:
 2. Install https://nodejs.org
 3. Download this project
 4. Run "npm update --production" command in project root folder
-5. Edit .env file and copy it into root app folder: 
+5. Edit configExample/.env file and copy it into root app folder: 
 
     #MOON_BOT_TOKEN=0123456789:FaKetOkEn - Mandatory. Uncomment and set the bot token given to you by @botFather.
 
