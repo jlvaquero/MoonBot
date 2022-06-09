@@ -11,7 +11,7 @@ It is in Beta. Still a lot of in-game testing is needed along with code resilenc
 
 How to deploy your own moonBot:
 
-1. Talk with @botFather in telegram and create a new bot.
+1. Chat with @botFather in telegram and create a new bot.
 2. Install https://nodejs.org
 3. Download this project
 4. Run "npm update --production" command in project root folder
